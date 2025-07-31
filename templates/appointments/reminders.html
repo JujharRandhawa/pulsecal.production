@@ -1,0 +1,332 @@
+{% extends 'appointments/base.html' %}
+
+{% block title %}Reminders - Clinic Appointment System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">
+            <i class="fas fa-bell me-2"></i>Appointment Reminders
+        </h2>
+        <p class="text-muted mb-0">Stay updated with your upcoming appointments</p>
+    </div>
+    {% if user.is_authenticated and user.profile.role == 'patient' %}
+        <a href="{% url 'appointments:patient_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    {% elif user.is_authenticated and user.profile.role == 'doctor' %}
+        <a href="{% url 'appointments:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    {% elif user.is_authenticated and user.profile.role == 'receptionist' %}
+        <a href="{% url 'appointments:reception_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    {% endif %}
+</div>
+
+<!-- Today's Appointments -->
+{% if today_appointments %}
+<div class="card mb-4 border-warning">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Today's Appointments</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Doctor</th>
+                        <th>Status</th>
+                        <th>Reminder</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in today_appointments %}
+                    <tr>
+                        <td>
+                            <strong>{{ appointment.appointment_date|time:"g:i A" }}</strong><br>
+                            <small class="text-muted">Today</small>
+                        </td>
+                        <td>
+                            <strong>{{ appointment.doctor.get_full_name }}</strong><br>
+                            <small class="text-muted">{{ appointment.doctor.profile.specialization }}</small>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ appointment.status }}">
+                                {{ appointment.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-clock text-warning me-2"></i>
+                                <span class="text-warning fw-bold">TODAY!</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'appointments:queue_status' %}" class="btn btn-outline-warning" title="Check Queue">
+                                    <i class="fas fa-clock"></i>
+                                </a>
+                                <a href="{% url 'appointments:reschedule' appointment.id %}" class="btn btn-outline-primary" title="Reschedule">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tomorrow's Appointments -->
+{% if tomorrow_appointments %}
+<div class="card mb-4 border-info">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="fas fa-calendar-day me-2"></i>Tomorrow's Appointments</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Doctor</th>
+                        <th>Status</th>
+                        <th>Reminder</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in tomorrow_appointments %}
+                    <tr>
+                        <td>
+                            <strong>{{ appointment.appointment_date|time:"g:i A" }}</strong><br>
+                            <small class="text-muted">Tomorrow</small>
+                        </td>
+                        <td>
+                            <strong>{{ appointment.doctor.get_full_name }}</strong><br>
+                            <small class="text-muted">{{ appointment.doctor.profile.specialization }}</small>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ appointment.status }}">
+                                {{ appointment.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-bell text-info me-2"></i>
+                                <span class="text-info fw-bold">TOMORROW</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'appointments:reschedule' appointment.id %}" class="btn btn-outline-primary" title="Reschedule">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-outline-success" onclick="setReminder({{ appointment.id }})" title="Set Reminder">
+                                    <i class="fas fa-bell"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Upcoming Appointments -->
+{% if upcoming_appointments %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-calendar-week me-2"></i>Upcoming Appointments (Next 7 Days)</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Doctor</th>
+                        <th>Status</th>
+                        <th>Days Until</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in upcoming_appointments %}
+                    <tr>
+                        <td>
+                            <strong>{{ appointment.appointment_date|date:"M d, Y" }}</strong><br>
+                            <small class="text-muted">{{ appointment.appointment_date|time:"g:i A" }}</small>
+                        </td>
+                        <td>
+                            <strong>{{ appointment.doctor.get_full_name }}</strong><br>
+                            <small class="text-muted">{{ appointment.doctor.profile.specialization }}</small>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ appointment.status }}">
+                                {{ appointment.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% with appointment.appointment_date|date:"Y-m-d" as app_date %}
+                                {% with "now"|date:"Y-m-d" as today %}
+                                    {% if app_date == today %}
+                                        <span class="badge bg-warning">Today</span>
+                                    {% else %}
+                                        <span class="text-muted">{{ appointment.appointment_date|timeuntil }}</span>
+                                    {% endif %}
+                                {% endwith %}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'appointments:reschedule' appointment.id %}" class="btn btn-outline-primary" title="Reschedule">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-outline-success" onclick="setReminder({{ appointment.id }})" title="Set Reminder">
+                                    <i class="fas fa-bell"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- No Appointments Message -->
+{% if not today_appointments and not tomorrow_appointments and not upcoming_appointments %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">No upcoming appointments</h4>
+        <p class="text-muted">You have no appointments scheduled for the next 7 days.</p>
+        <a href="{% url 'appointments:schedule' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Book Appointment
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Reminder Settings -->
+<div class="row mt-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Reminder Settings</h5>
+            </div>
+            <div class="card-body">
+                <form>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Email Reminders</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="email_24h" checked>
+                                <label class="form-check-label" for="email_24h">
+                                    24 hours before appointment
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="email_2h" checked>
+                                <label class="form-check-label" for="email_2h">
+                                    2 hours before appointment
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="email_30min">
+                                <label class="form-check-label" for="email_30min">
+                                    30 minutes before appointment
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Reminder Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Reminder Tips</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6><i class="fas fa-clock me-2"></i>Before Your Appointment</h6>
+                    <ul class="text-muted small">
+                        <li>Arrive 10 minutes early</li>
+                        <li>Bring your ID and insurance</li>
+                        <li>List your current medications</li>
+                        <li>Prepare your questions</li>
+                    </ul>
+                </div>
+                
+                <div class="mb-3">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Important</h6>
+                    <ul class="text-muted small">
+                        <li>Cancel 24 hours in advance</li>
+                        <li>Emergency? Call immediately</li>
+                        <li>Update contact info if changed</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h6><i class="fas fa-phone me-2"></i>Need to Cancel?</h6>
+                    <p class="text-muted small mb-2">Call us at least 24 hours before your appointment:</p>
+                    <a href="tel:+1-555-CLINIC" class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-phone me-2"></i>Call to Cancel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function setReminder(appointmentId) {
+    // This would typically make an AJAX call to set a reminder
+    // For now, we'll show a simple notification
+    alert('Reminder set for appointment #' + appointmentId + '!');
+}
+
+// Check for browser notifications permission
+if ('Notification' in window) {
+    if (Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+}
+
+// Show notification when page loads if there are today's appointments
+document.addEventListener('DOMContentLoaded', function() {
+    {% if today_appointments %}
+        if (Notification.permission === 'granted') {
+            new Notification('Appointment Reminder', {
+                body: 'You have {{ today_appointments.count }} appointment(s) today!',
+                icon: '/static/favicon.ico'
+            });
+        }
+    {% endif %}
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,48 @@
+{% extends 'appointments/base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Create Organization (Clinic/Hospital)</h2>
+    <form method="post" id="orgForm" novalidate>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Create</button>
+    </form>
+    <div id="confetti-container" style="position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;display:none;"></div>
+    <script>
+    // Bootstrap validation
+    const orgForm = document.getElementById('orgForm');
+    orgForm.addEventListener('submit', function(event) {
+        if (!orgForm.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+            orgForm.classList.add('was-validated');
+        }
+    });
+    // Confetti animation on success
+    window.addEventListener('DOMContentLoaded', function() {
+        if (document.querySelector('.alert-success')) {
+            const confetti = document.getElementById('confetti-container');
+            confetti.style.display = 'block';
+            for (let i = 0; i < 80; i++) {
+                const el = document.createElement('div');
+                el.style.position = 'absolute';
+                el.style.left = Math.random()*100+'vw';
+                el.style.top = '-40px';
+                el.style.width = '10px';
+                el.style.height = '18px';
+                el.style.background = `hsl(${Math.random()*360},80%,60%)`;
+                el.style.opacity = 0.7;
+                el.style.borderRadius = '3px';
+                el.style.transform = `rotate(${Math.random()*360}deg)`;
+                el.style.transition = 'top 1.2s cubic-bezier(.4,0,.2,1)';
+                confetti.appendChild(el);
+                setTimeout(()=>{
+                    el.style.top = '100vh';
+                }, 10);
+            }
+            setTimeout(()=>{ confetti.style.display = 'none'; confetti.innerHTML = ''; }, 1800);
+        }
+    });
+    </script>
+</div>
+{% endblock %} 

@@ -1,0 +1,378 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+
+{% block title %}Home - Clinic Appointment System{% endblock %}
+
+{% block content %}
+<style>
+    .hero-section-pro {
+        background: linear-gradient(120deg, #f8fafd 60%, #e3eefd 100%);
+        padding-top: 48px;
+        padding-bottom: 48px;
+        position: relative;
+        margin-top: -60px; /* Move hero section further up */
+    }
+    .hero-card-pro {
+        background: #fff;
+        border-radius: 2rem;
+        box-shadow: 0 8px 40px rgba(37,99,235,0.10), 0 2px 8px rgba(80,120,200,0.08);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        overflow: visible;
+        max-width: 1100px;
+        margin: 0 auto 0 auto;
+        position: relative;
+    }
+    .hero-text-pro {
+        flex: 1 1 350px;
+        padding: 3rem 2.5rem 3rem 2.5rem;
+        z-index: 2;
+    }
+    .hero-illustration-pro {
+        flex: 1 1 350px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 320px;
+        min-height: 320px;
+        position: relative;
+        z-index: 3;
+        margin-right: -40px;
+        margin-top: -40px;
+    }
+    .hero-illustration-container-pro {
+        position: relative;
+        background: linear-gradient(135deg, #f8fafd 60%, #e3eefd 100%);
+        border-radius: 1.5rem;
+        box-shadow: 0 4px 24px rgba(80,120,200,0.10);
+        border: 1.5px solid #e3eefd;
+        padding: 1.5rem;
+        max-width: 370px;
+        width: 100%;
+    }
+    .hero-illustration-calendar {
+        position: absolute;
+        top: 18px;
+        left: 18px;
+        width: 54px;
+        height: 54px;
+        z-index: 2;
+        filter: drop-shadow(0 2px 8px rgba(80,120,200,0.10));
+        animation: floatY 2.5s ease-in-out infinite alternate;
+    }
+    @keyframes floatY {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-12px); }
+    }
+    .hero-illustration-tick {
+        position: absolute;
+        bottom: 18px;
+        right: 18px;
+        width: 36px;
+        height: 36px;
+        z-index: 2;
+        filter: drop-shadow(0 2px 8px rgba(59,130,246,0.10));
+        animation: pulseTick 1.8s infinite;
+    }
+    @keyframes pulseTick {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.12); opacity: 0.85; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    @media (max-width: 991px) {
+        .hero-card-pro {
+            flex-direction: column;
+            padding: 0;
+        }
+        .hero-illustration-pro {
+            margin: 0 0 -30px 0;
+        }
+    }
+    
+    /* Testimonials Styling */
+    .testimonial-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .testimonial-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+    }
+    
+    .testimonial-avatar {
+        transition: transform 0.3s ease;
+    }
+    
+    .testimonial-card:hover .testimonial-avatar {
+        transform: scale(1.1);
+    }
+    
+    .trust-indicator {
+        text-align: center;
+        padding: 1rem;
+        transition: transform 0.3s ease;
+    }
+    
+    .trust-indicator:hover {
+        transform: translateY(-3px);
+    }
+    
+    .trust-indicator i {
+        transition: transform 0.3s ease;
+    }
+    
+    .trust-indicator:hover i {
+        transform: scale(1.1);
+    }
+    
+    /* Star rating animation */
+    .testimonial-card .fa-star {
+        animation: starGlow 2s ease-in-out infinite alternate;
+    }
+    
+    @keyframes starGlow {
+        0% { opacity: 0.8; }
+        100% { opacity: 1; }
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .trust-indicator {
+            flex: 1 1 50%;
+            min-width: 150px;
+        }
+    }
+    .testimonials-highlight {
+        border: 3px solid #2563eb;
+        background: #f0f6ff;
+        border-radius: 1.5rem;
+        box-shadow: 0 4px 24px rgba(37,99,235,0.10);
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+        padding: 2.5rem 1.5rem;
+    }
+    .testimonials-section-pro {
+        background: #f8fafc;
+        border-radius: 1rem;
+        margin-top: 1.5rem;
+        margin-bottom: 1.5rem;
+        padding: 1.5rem 0.5rem;
+        box-shadow: 0 2px 12px rgba(37,99,235,0.04);
+    }
+</style>
+<div class="hero-section-pro">
+    <div class="hero-card-pro">
+        <div class="hero-text-pro text-lg-start text-center">
+            <h1 class="display-5 fw-bold mb-2">
+                <i class="fas fa-hospital-alt me-2 icon icon-animated"></i>Welcome to PulseCal
+            </h1>
+            <p class="lead mb-3">A modern, secure appointment management system for clinics and healthcare providers.</p>
+            <div class="mb-4 text-muted">Book, manage, and track appointments with ease and confidence.</div>
+            <div class="d-flex flex-column flex-md-row gap-3 mt-2 justify-content-center justify-content-lg-start align-items-center">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'appointments:dashboard' %}" class="btn btn-primary btn-lg px-4 shadow cta-btn d-flex align-items-center" aria-label="Go to your dashboard" tabindex="0">
+                        <span class="me-2"><i class="fas fa-tachometer-alt"></i> Get Started</span>
+                        <span class="cta-arrow ms-2" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+                    </a>
+                    {% if user.profile.role == 'patient' %}
+                        <a href="{% url 'appointments:schedule' %}" class="btn btn-outline-success btn-lg px-4 shadow d-flex align-items-center" aria-label="Book an appointment" tabindex="0">
+                            <span class="me-2"><i class="fas fa-calendar-plus"></i> Book Appointment</span>
+                        </a>
+                    {% else %}
+                        <button class="btn btn-outline-success btn-lg px-4 shadow d-flex align-items-center" aria-label="Only patients can book appointments" tabindex="0" disabled data-bs-toggle="tooltip" data-bs-placement="top" title="Only patients can book appointments">
+                            <span class="me-2"><i class="fas fa-calendar-plus"></i> Book Appointment</span>
+                        </button>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'appointments:custom_register' %}" class="btn btn-primary btn-lg px-4 shadow cta-btn d-flex align-items-center" aria-label="Register and get started" tabindex="0">
+                        <span class="me-2"><i class="fas fa-user-plus"></i> Get Started</span>
+                        <span class="cta-arrow ms-2" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+                    </a>
+                    <a href="{% url 'account_login' %}?next={% url 'appointments:schedule' %}" class="btn btn-outline-success btn-lg px-4 shadow d-flex align-items-center" aria-label="Login to book an appointment" tabindex="0">
+                        <span class="me-2"><i class="fas fa-calendar-plus"></i> Book Appointment</span>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="hero-illustration-pro">
+            <div class="hero-illustration-container-pro">
+                <img src="{% static 'img/doctor-calender.png' %}" alt="Doctor pointing to calendar" class="img-fluid rounded" style="z-index: 1; position: relative;">
+                <!-- Modern calendar icon overlay with animation -->
+                <svg class="hero-illustration-calendar" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="6" y="12" width="42" height="34" rx="8" fill="#e3eefd"/>
+                    <rect x="6" y="12" width="42" height="8" rx="4" fill="#b6d0fa"/>
+                    <rect x="16" y="28" width="7" height="7" rx="2" fill="#7bb6fa"/>
+                    <rect x="31" y="28" width="7" height="7" rx="2" fill="#7bb6fa"/>
+                    <rect x="16" y="19" width="22" height="4" rx="2" fill="#fff"/>
+                    <circle cx="13" cy="16" r="2" fill="#3b82f6"/>
+                    <circle cx="41" cy="16" r="2" fill="#3b82f6"/>
+                </svg>
+                <!-- Animated blue tick badge overlay -->
+                <svg class="hero-illustration-tick" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="18" cy="18" r="18" fill="#3b82f6"/>
+                    <path d="M11 19l5 5 9-9" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Why Choose PulseCal Section (moved up) -->
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Why Choose PulseCal?</h2>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-md fa-3x text-primary mb-3 icon"></i>
+                    <h5 class="card-title">For Doctors</h5>
+                    <p class="card-text">Easily manage your appointments, view patient information, and keep your clinic organized.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-user fa-3x text-success mb-3 icon"></i>
+                    <h5 class="card-title">For Patients</h5>
+                    <p class="card-text">Book, view, and manage your appointments with your preferred doctors, all in one place.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-shield-alt fa-3x text-info mb-3 icon"></i>
+                    <h5 class="card-title">Secure & Reliable</h5>
+                    <p class="card-text">Your data is protected with industry-standard security and privacy best practices.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Display Section (now after Why Choose PulseCal) -->
+<div class="container mt-5">
+    <div class="row mb-5">
+        <div class="col-md-4 text-center">
+            <i class="fas fa-calendar-plus fa-3x text-primary mb-3 icon icon-animated"></i>
+            <h4 class="fw-bold">Appointment Scheduling</h4>
+            <p class="text-muted">Book appointments with ease, choose your doctor, and select the time that works for you.</p>
+        </div>
+        <div class="col-md-4 text-center">
+            <i class="fas fa-bell fa-3x text-success mb-3 icon icon-animated"></i>
+            <h4 class="fw-bold">Realtime Track & Notifications</h4>
+            <p class="text-muted">Track your appointments in real time and receive instant notifications for updates and reminders.</p>
+        </div>
+        <div class="col-md-4 text-center">
+            <i class="fas fa-shield-alt fa-3x text-info mb-3 icon icon-animated"></i>
+            <h4 class="fw-bold">Secure & Reliable</h4>
+            <p class="text-muted">Your data is protected with industry-standard security and our platform is always available when you need it.</p>
+        </div>
+    </div>
+</div>
+
+<!-- How It Works Section -->
+<div class="container mt-5">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <h3 class="mb-3 text-center"><i class="fas fa-cogs me-2 icon"></i>How It Works</h3>
+            <div class="row text-center">
+                <div class="col-md-4 mb-3">
+                    <i class="fas fa-user-plus fa-2x text-primary mb-2 icon"></i>
+                    <h5 class="fw-bold">1. Register or Login</h5>
+                    <p class="text-muted">Create your account as a patient, doctor, or receptionist, or log in to your existing account.</p>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <i class="fas fa-calendar-check fa-2x text-success mb-2 icon"></i>
+                    <h5 class="fw-bold">2. Book or Manage Appointments</h5>
+                    <p class="text-muted">Patients book appointments, doctors manage their schedule, and receptionists coordinate the clinic.</p>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <i class="fas fa-bell fa-2x text-warning mb-2 icon"></i>
+                    <h5 class="fw-bold">3. Get Real-time Updates</h5>
+                    <p class="text-muted">Receive instant notifications and track appointment status in real time from any device.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- === TESTIMONIALS SECTION (PROFESSIONAL, SUBTLE) === -->
+<div class="container testimonials-section-pro" id="testimonials">
+    <h2 class="text-center mb-4" style="font-weight: 600; letter-spacing: -1px;">What Our Users Say</h2>
+    <div class="row justify-content-center">
+        <!-- Testimonial 1 -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Dr. Sarah Johnson" class="rounded-circle me-3" width="48" height="48">
+                        <div>
+                            <div class="fw-bold">Dr. Sarah Johnson</div>
+                            <div class="text-muted small">Cardiologist, City Hospital</div>
+                        </div>
+                    </div>
+                    <p class="mb-2">"PulseCal has streamlined my scheduling and improved patient satisfaction. The real-time updates are invaluable."</p>
+                </div>
+            </div>
+        </div>
+        <!-- Testimonial 2 -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Rajesh Kumar" class="rounded-circle me-3" width="48" height="48">
+                        <div>
+                            <div class="fw-bold">Rajesh Kumar</div>
+                            <div class="text-muted small">Patient</div>
+                        </div>
+                    </div>
+                    <p class="mb-2">"Booking appointments is now effortless. I appreciate the reminders and easy rescheduling."</p>
+                </div>
+            </div>
+        </div>
+        <!-- Testimonial 3 -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <img src="https://randomuser.me/api/portraits/men/45.jpg" alt="Dr. Anil Mehra" class="rounded-circle me-3" width="48" height="48">
+                        <div>
+                            <div class="fw-bold">Dr. Anil Mehra</div>
+                            <div class="text-muted small">Medical Director</div>
+                        </div>
+                    </div>
+                    <p class="mb-2">"The audit logs and role-based access give us confidence in compliance and security."</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="text-center mt-3 text-muted small">
+        Trusted by healthcare professionals and patients across the region.
+    </div>
+</div>
+<!-- === END TESTIMONIALS SECTION === -->
+
+<!-- About Section -->
+<div class="container mt-5 mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <h3 class="mb-3"><i class="fas fa-info-circle me-2 icon"></i>About PulseCal</h3>
+            <p>PulseCal is a comprehensive appointment management system designed for clinics, hospitals, doctors, and patients. It enables seamless scheduling, real-time doctor availability, and secure patient data management for healthcare organizations of all sizes.</p>
+            <ul>
+                <li>Multi-organization support (clinics & hospitals)</li>
+                <li>Role-based dashboards for doctors, patients, and receptionists</li>
+                <li>Easy appointment booking and management</li>
+                <li>Exportable patient data per organization</li>
+                <li>Modern, secure, and user-friendly interface</li>
+            </ul>
+            <p class="text-muted small">For more information, contact your clinic or hospital administrator.</p>
+        </div>
+    </div>
+</div>
+{% endblock %} 

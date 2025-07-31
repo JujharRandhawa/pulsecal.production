@@ -1,0 +1,112 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+
+{% block title %}Chat Rooms{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/websocket.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <i class="fas fa-comments"></i> Chat Rooms
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <!-- Create New Chat Room -->
+                    <div class="mb-4">
+                        <h5>Create New Chat Room</h5>
+                        <form method="post" class="mb-3">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label for="room_name">Room Name</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="room_name" 
+                                       name="room_name" 
+                                       placeholder="Enter room name" 
+                                       required>
+                            </div>
+                            <div class="form-group">
+                                <label for="participants">Select Participants</label>
+                                <select class="form-control" id="participants" name="participants" multiple>
+                                    {% for user in available_users %}
+                                        <option value="{{ user.id }}">
+                                            {{ user.get_full_name }} ({{ user.profile.role }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">
+                                    Hold Ctrl (or Cmd on Mac) to select multiple participants
+                                </small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Create Room
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Existing Chat Rooms -->
+                    <div>
+                        <h5>Your Chat Rooms</h5>
+                        {% if user_rooms %}
+                            <div class="list-group">
+                                {% for room in user_rooms %}
+                                    <a href="{% url 'appointments:chat' room.name %}" 
+                                       class="list-group-item list-group-item-action">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">{{ room.name }}</h6>
+                                                <small class="text-muted">
+                                                    Participants: 
+                                                    {% for participant in room.participants.all %}
+                                                        {{ participant.get_full_name }}{% if not forloop.last %}, {% endif %}
+                                                    {% endfor %}
+                                                </small>
+                                            </div>
+                                            <div class="text-right">
+                                                <small class="text-muted">
+                                                    Created {{ room.created_at|timesince }} ago
+                                                </small>
+                                                <br>
+                                                <span class="badge badge-primary">
+                                                    {{ room.messages.count }} messages
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No chat rooms</h5>
+                                <p class="text-muted">Create a new chat room to start messaging!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification container for real-time notifications -->
+<div id="notification-container"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/websocket.js' %}"></script>
+<script>
+// Initialize select2 for better participant selection (if available)
+document.addEventListener('DOMContentLoaded', function() {
+    // You can add select2 initialization here if you include select2 library
+    // $('#participants').select2();
+});
+</script>
+{% endblock %} 

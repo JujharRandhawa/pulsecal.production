@@ -1,0 +1,115 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Reception Dashboard - Book Appointment</h2>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+    <form method="get" class="row mb-3">
+        <div class="col-md-6">
+            <input type="text" name="search" class="form-control" placeholder="Search patients by name or username..." value="{{ search_query }}">
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-outline-primary">Search</button>
+        </div>
+        <div class="col-md-4 text-end">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addPatientModal">
+                <i class="fas fa-user-plus"></i> Add New Patient
+            </button>
+        </div>
+    </form>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="patient" class="form-label">Select Patient</label>
+            <select name="patient" id="patient" class="form-select" required>
+                <option value="">---------</option>
+                {% for patient in patients %}
+                    <option value="{{ patient.id }}" {% if patient.id|stringformat:'s' == selected_patient_id %}selected{% endif %}>
+                        {{ patient.get_full_name }} ({{ patient.username }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Book Appointment</button>
+    </form>
+    <!-- Add Patient Modal -->
+    <div class="modal fade" id="addPatientModal" tabindex="-1" aria-labelledby="addPatientModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="create_patient" value="1">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addPatientModalLabel">Add New Patient</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              {{ patient_form.as_p }}
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-success">Add Patient</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <hr class="my-4">
+    <h3 class="mb-3">Doctor Availability</h3>
+    <div class="row">
+        {% for info in doctor_infos %}
+            {% with doctor=info.doctor %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="fas fa-user-md fa-lg"></i>
+                            </div>
+                            <div class="ms-3">
+                                <h5 class="mb-0">Dr. {{ doctor.get_full_name }}</h5>
+                                <span class="badge bg-{{ info.on_duty|yesno:'success,danger' }} ms-2">{{ info.on_duty|yesno:'On Duty,Off Duty' }}</span>
+                                <div class="text-muted small">{{ doctor.profile.specialization }}</div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Current:</strong>
+                            {% if info.current_appointment %}
+                                {{ info.current_appointment.appointment_date|date:'D, M d, H:i' }} with {{ info.current_appointment.patient.get_full_name }}
+                            {% else %}
+                                <span class="text-muted">None</span>
+                            {% endif %}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Next:</strong>
+                            {% if info.next_appointment %}
+                                {{ info.next_appointment.appointment_date|date:'D, M d, H:i' }} with {{ info.next_appointment.patient.get_full_name }}
+                            {% else %}
+                                <span class="text-muted">None</span>
+                            {% endif %}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Available Slots:</strong>
+                            {% if info.available_slots %}
+                                <ul class="list-inline mb-0">
+                                    {% for slot in info.available_slots %}
+                                        <li class="list-inline-item border rounded px-2 py-1 mb-1">{{ slot|date:'D, H:i' }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <span class="text-muted">None</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

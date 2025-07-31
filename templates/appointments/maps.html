@@ -1,0 +1,552 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+
+{% block title %}Find Clinics & Doctors - PulseCal{% endblock %}
+
+{% block extra_head %}
+<style>
+    #map {
+        height: 600px;
+        width: 100%;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border: 2px solid #e0e0e0;
+    }
+    
+    .map-controls {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .filter-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+    }
+    
+    .filter-btn {
+        padding: 8px 16px;
+        border: 2px solid var(--primary-color);
+        background: white;
+        color: var(--primary-color);
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 500;
+    }
+    
+    .filter-btn.active {
+        background: var(--primary-color);
+        color: white;
+    }
+    
+    .filter-btn:hover {
+        background: var(--primary-color);
+        color: white;
+    }
+    
+    .map-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    
+    .info-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .info-card h3 {
+        color: var(--primary-color);
+        margin-bottom: 10px;
+        font-size: 1.2rem;
+    }
+    
+    .info-card p {
+        margin: 5px 0;
+        color: var(--text-muted);
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin-left: 10px;
+    }
+    
+    .status-on-duty {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .status-24h {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .map-container {
+        position: relative;
+    }
+    
+    .map-overlay {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: white;
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        z-index: 1000;
+        font-size: 0.9rem;
+    }
+    
+    .map-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 600px;
+        background: #f8f9fa;
+        color: #6c757d;
+        border-radius: 12px;
+        border: 2px solid #e0e0e0;
+    }
+    
+    .map-error {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 600px;
+        background: #fff5f5;
+        color: #dc3545;
+        border-radius: 12px;
+        border: 2px solid #fecaca;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="hero-section text-center">
+        <h1><i class="fas fa-map-marker-alt"></i> Find Clinics & Doctors</h1>
+        <p class="text-muted">Discover healthcare providers near you</p>
+    </div>
+
+    <div class="map-controls">
+        <div class="filter-buttons">
+            <button class="filter-btn active" onclick="showAll()">All Locations</button>
+            <button class="filter-btn" onclick="showOrganizations()">Clinics & Hospitals</button>
+            <button class="filter-btn" onclick="showDoctors()">Doctors</button>
+            <button class="filter-btn" onclick="showOnDuty()">On Duty</button>
+            <button class="filter-btn" onclick="show24Hours()">24/7 Services</button>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Total Locations:</strong> <span id="total-count">{{ organizations|length|add:doctors|length }}</span></p>
+            </div>
+            <div class="col-md-6 text-end">
+                <p><strong>API Key Status:</strong> 
+                    {% if api_key %}
+                        <span class="text-success">✓ Configured</span>
+                    {% else %}
+                        <span class="text-danger">✗ Missing</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="map-container">
+        <div id="map">
+            <div class="map-loading">
+                <div class="text-center">
+                    <i class="fas fa-spinner fa-spin fa-3x mb-3"></i><br>
+                    Loading Google Maps...
+                </div>
+            </div>
+        </div>
+        <div class="map-overlay">
+            <strong>Legend:</strong><br>
+            🏥 Clinics & Hospitals<br>
+            👨‍⚕️ Doctors<br>
+            🟢 On Duty<br>
+            🟡 24/7 Service
+        </div>
+    </div>
+
+    <div class="map-info">
+        <div class="info-card">
+            <h3><i class="fas fa-hospital"></i> Organizations ({{ organizations|length }})</h3>
+            <p>Registered clinics and hospitals with location data</p>
+            <p><strong>Types:</strong> Clinics, Hospitals</p>
+            <p><strong>Features:</strong> 24/7 services, operating hours</p>
+        </div>
+        
+        <div class="info-card">
+            <h3><i class="fas fa-user-md"></i> Doctors ({{ doctors|length }})</h3>
+            <p>Healthcare professionals with their locations</p>
+            <p><strong>Specializations:</strong> Various medical fields</p>
+            <p><strong>Status:</strong> On/Off duty tracking</p>
+        </div>
+        
+        <div class="info-card">
+            <h3><i class="fas fa-info-circle"></i> How to Use</h3>
+            <p>• Click markers for details</p>
+            <p>• Use filters to find specific services</p>
+            <p>• Zoom and pan to explore areas</p>
+            <p>• Get directions to selected locations</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Simple and reliable Google Maps implementation
+let map;
+let markers = [];
+let currentFilter = 'all';
+
+// Map data from Django
+const mapData = {
+    organizations: {{ organizations|safe }},
+    doctors: {{ doctors|safe }},
+    apiKey: '{{ api_key }}'
+};
+
+console.log('Maps page loaded');
+console.log('API Key:', mapData.apiKey ? 'Configured' : 'Missing');
+console.log('Organizations:', mapData.organizations.length);
+console.log('Doctors:', mapData.doctors.length);
+
+function initMap() {
+    console.log('initMap called');
+    
+    if (!mapData.apiKey) {
+        console.error('No API key provided');
+        document.getElementById('map').innerHTML = 
+            '<div class="map-error"><div class="text-center"><i class="fas fa-exclamation-triangle fa-3x mb-3"></i><br>Google Maps API Key not configured</div></div>';
+        return;
+    }
+
+    try {
+        // Initialize map centered on first location or default
+        const defaultCenter = { lat: 40.7128, lng: -74.0060 }; // NYC default
+        const firstLocation = mapData.organizations[0] || mapData.doctors[0];
+        const center = firstLocation ? { lat: firstLocation.latitude, lng: firstLocation.longitude } : defaultCenter;
+
+        console.log('Creating map with center:', center);
+
+        map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 12,
+            center: center,
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            mapTypeControl: true,
+            streetViewControl: true,
+            fullscreenControl: true
+        });
+
+        console.log('Map created successfully');
+        
+        // Add markers
+        addMarkers();
+        
+        // Add search box
+        addSearchBox();
+        
+    } catch (error) {
+        console.error('Error creating map:', error);
+        document.getElementById('map').innerHTML = 
+            '<div class="map-error"><div class="text-center"><i class="fas fa-exclamation-triangle fa-3x mb-3"></i><br>Error loading Google Maps: ' + error.message + '</div></div>';
+    }
+}
+
+function addSearchBox() {
+    try {
+        const input = document.createElement('input');
+        input.setAttribute('placeholder', 'Search for clinics, hospitals, or doctors...');
+        input.setAttribute('style', 'width: 300px; height: 40px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin: 10px;');
+        
+        const searchBox = new google.maps.places.SearchBox(input);
+        map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
+        
+        map.addListener('bounds_changed', () => {
+            searchBox.setBounds(map.getBounds());
+        });
+        
+        console.log('Search box added');
+    } catch (error) {
+        console.log('Search box not available (Places API not enabled)');
+    }
+}
+
+function addMarkers() {
+    console.log('Adding markers...');
+    clearMarkers();
+    
+    let markerCount = 0;
+    
+    // Add organization markers
+    mapData.organizations.forEach(org => {
+        if (shouldShowMarker(org, 'organization')) {
+            try {
+                const marker = new google.maps.Marker({
+                    position: { lat: org.latitude, lng: org.longitude },
+                    map: map,
+                    title: org.name,
+                    icon: {
+                        url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                        scaledSize: new google.maps.Size(32, 32)
+                    }
+                });
+                
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `
+                        <div style="padding: 10px; max-width: 300px;">
+                            <h4 style="color: #dc3545; margin-bottom: 10px;">🏥 ${org.name}</h4>
+                            <p><strong>Type:</strong> ${org.type}</p>
+                            <p><strong>Address:</strong> ${org.address}</p>
+                            <p><strong>Phone:</strong> ${org.phone || 'N/A'}</p>
+                            <p><strong>Email:</strong> ${org.email || 'N/A'}</p>
+                            ${org.is_24_hours ? '<p><span style="background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">24/7 Service</span></p>' : ''}
+                            <p><strong>Specialization:</strong> ${org.specialization}</p>
+                            <a href="/organization/${org.id}/map/" class="btn btn-sm btn-primary">View Details</a>
+                        </div>
+                    `
+                });
+                
+                marker.addListener('click', () => {
+                    infoWindow.open(map, marker);
+                });
+                
+                markers.push(marker);
+                markerCount++;
+            } catch (error) {
+                console.error('Error adding organization marker:', error);
+            }
+        }
+    });
+    
+    // Add doctor markers
+    mapData.doctors.forEach(doctor => {
+        if (shouldShowMarker(doctor, 'doctor')) {
+            try {
+                const marker = new google.maps.Marker({
+                    position: { lat: doctor.latitude, lng: doctor.longitude },
+                    map: map,
+                    title: doctor.name,
+                    icon: {
+                        url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                        scaledSize: new google.maps.Size(32, 32)
+                    }
+                });
+                
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `
+                        <div style="padding: 10px; max-width: 300px;">
+                            <h4 style="color: #007bff; margin-bottom: 10px;">👨‍⚕️ ${doctor.name}</h4>
+                            <p><strong>Specialization:</strong> ${doctor.specialization}</p>
+                            <p><strong>Organization:</strong> ${doctor.organization}</p>
+                            <p><strong>Address:</strong> ${doctor.address}</p>
+                            <p><strong>Phone:</strong> ${doctor.phone || 'N/A'}</p>
+                            <p><strong>Email:</strong> ${doctor.email || 'N/A'}</p>
+                            ${doctor.on_duty ? '<p><span style="background: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">On Duty</span></p>' : ''}
+                            <a href="/doctor/${doctor.id}/" class="btn btn-sm btn-primary">View Profile</a>
+                        </div>
+                    `
+                });
+                
+                marker.addListener('click', () => {
+                    infoWindow.open(map, marker);
+                });
+                
+                markers.push(marker);
+                markerCount++;
+            } catch (error) {
+                console.error('Error adding doctor marker:', error);
+            }
+        }
+    });
+    
+    console.log(`Added ${markerCount} markers`);
+    updateCount();
+}
+
+function shouldShowMarker(item, type) {
+    switch (currentFilter) {
+        case 'all':
+            return true;
+        case 'organizations':
+            return type === 'organization';
+        case 'doctors':
+            return type === 'doctor';
+        case 'on_duty':
+            return item.on_duty;
+        case '24_hours':
+            return item.is_24_hours;
+        default:
+            return true;
+    }
+}
+
+function clearMarkers() {
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
+}
+
+function showAll() {
+    currentFilter = 'all';
+    updateFilterButtons('all');
+    addMarkers();
+}
+
+function showOrganizations() {
+    currentFilter = 'organizations';
+    updateFilterButtons('organizations');
+    addMarkers();
+}
+
+function showDoctors() {
+    currentFilter = 'doctors';
+    updateFilterButtons('doctors');
+    addMarkers();
+}
+
+function showOnDuty() {
+    currentFilter = 'on_duty';
+    updateFilterButtons('on_duty');
+    addMarkers();
+}
+
+function show24Hours() {
+    currentFilter = '24_hours';
+    updateFilterButtons('24_hours');
+    addMarkers();
+}
+
+function updateFilterButtons(activeFilter) {
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+}
+
+function updateCount() {
+    document.getElementById('total-count').textContent = markers.length;
+}
+
+// Load Google Maps API
+function loadGoogleMapsAPI() {
+    console.log('Loading Google Maps API...');
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${mapData.apiKey}&libraries=places&callback=initMap`;
+    script.async = true;
+    script.defer = true;
+    script.onerror = function() {
+        console.error('Failed to load Google Maps API');
+        showFallbackMap();
+    };
+    document.head.appendChild(script);
+    
+    // Set a timeout in case the API doesn't load
+    setTimeout(() => {
+        if (!map) {
+            console.log('Google Maps API timeout, showing fallback');
+            showFallbackMap();
+        }
+    }, 10000); // 10 second timeout
+}
+
+function showFallbackMap() {
+    console.log('Showing fallback map');
+    document.getElementById('map').innerHTML = `
+        <div style="height: 600px; background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 12px; padding: 20px;">
+            <div class="text-center">
+                <i class="fas fa-map fa-3x mb-3" style="color: #6c757d;"></i>
+                <h3>Interactive Map Unavailable</h3>
+                <p class="text-muted">Google Maps is not loading. Here are the available locations:</p>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-hospital text-danger"></i> Organizations (${mapData.organizations.length})</h5>
+                        <div style="max-height: 200px; overflow-y: auto;">
+                            ${mapData.organizations.map(org => `
+                                <div class="card mb-2">
+                                    <div class="card-body p-2">
+                                        <strong>${org.name}</strong><br>
+                                        <small class="text-muted">${org.address}</small><br>
+                                        <small class="text-muted">${org.phone || 'No phone'}</small>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-user-md text-primary"></i> Doctors (${mapData.doctors.length})</h5>
+                        <div style="max-height: 200px; overflow-y: auto;">
+                            ${mapData.doctors.map(doctor => `
+                                <div class="card mb-2">
+                                    <div class="card-body p-2">
+                                        <strong>${doctor.name}</strong><br>
+                                        <small class="text-muted">${doctor.specialization}</small><br>
+                                        <small class="text-muted">${doctor.organization}</small>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <button class="btn btn-primary" onclick="location.reload()">Retry Loading Map</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing maps...');
+    
+    if (mapData.apiKey) {
+        // Test the API key first
+        testAPIKey();
+    } else {
+        console.error('Google Maps API key not configured');
+        document.getElementById('map').innerHTML = 
+            '<div class="map-error"><div class="text-center"><i class="fas fa-exclamation-triangle fa-3x mb-3"></i><br>Google Maps API Key not configured</div></div>';
+    }
+});
+
+function testAPIKey() {
+    console.log('Testing API key...');
+    const testUrl = `https://maps.googleapis.com/maps/api/js?key=${mapData.apiKey}&libraries=places`;
+    
+    fetch(testUrl)
+        .then(response => {
+            if (response.ok) {
+                console.log('API key test successful');
+                loadGoogleMapsAPI();
+            } else {
+                console.error('API key test failed:', response.status);
+                document.getElementById('map').innerHTML = 
+                    '<div class="map-error"><div class="text-center"><i class="fas fa-exclamation-triangle fa-3x mb-3"></i><br>Invalid API Key (Status: ' + response.status + ')</div></div>';
+            }
+        })
+        .catch(error => {
+            console.error('API key test error:', error);
+            // Still try to load the API
+            loadGoogleMapsAPI();
+        });
+}
+</script>
+{% endblock %} 

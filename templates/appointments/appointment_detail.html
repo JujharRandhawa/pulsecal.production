@@ -1,0 +1,291 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+
+{% block title %}Appointment Details - {{ appointment.doctor.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">
+            <i class="fas fa-calendar-check me-2"></i>Appointment Details
+        </h2>
+        <p class="text-muted mb-0">Appointment with Dr. {{ appointment.doctor.get_full_name }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if can_cancel %}
+            <a href="{% url 'appointments:cancel' appointment.id %}" class="btn btn-danger">
+                <i class="fas fa-times me-2"></i>Cancel
+            </a>
+        {% endif %}
+        {% if can_reschedule %}
+            <a href="{% url 'appointments:reschedule' appointment.id %}" class="btn btn-primary">
+                <i class="fas fa-edit me-2"></i>Reschedule
+            </a>
+        {% endif %}
+        <a href="{% url 'appointments:patient_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Appointment Information -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Appointment Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Doctor</h6>
+                        <p class="mb-3">
+                            <strong>Dr. {{ appointment.doctor.get_full_name }}</strong><br>
+                            <span class="text-muted">{{ appointment.doctor.profile.specialization }}</span>
+                        </p>
+                        
+                        <h6 class="text-muted">Date & Time</h6>
+                        <p class="mb-3">
+                            <strong>{{ appointment.appointment_date|date:"l, F j, Y" }}</strong><br>
+                            <span class="text-muted">{{ appointment.appointment_date|time:"g:i A" }}</span>
+                        </p>
+                        
+                        <h6 class="text-muted">Status</h6>
+                        <p class="mb-3">
+                            <span class="badge bg-{% if appointment.status == 'confirmed' %}success{% elif appointment.status == 'pending' %}warning{% elif appointment.status == 'cancelled' %}danger{% else %}secondary{% endif %}">
+                                {{ appointment.get_status_display }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Patient Status</h6>
+                        <p class="mb-3">
+                            <span class="badge bg-{% if appointment.patient_status == 'waiting' %}warning{% elif appointment.patient_status == 'in_consultation' %}info{% elif appointment.patient_status == 'done' %}success{% else %}secondary{% endif %}">
+                                {{ appointment.get_patient_status_display }}
+                            </span>
+                        </p>
+                        
+                        <h6 class="text-muted">Type</h6>
+                        <p class="mb-3">{{ appointment.get_appointment_type_display }}</p>
+                        
+                        {% if appointment.fee %}
+                            <h6 class="text-muted">Fee</h6>
+                            <p class="mb-3"><strong>${{ appointment.fee }}</strong></p>
+                        {% endif %}
+                        
+                        {% if minutes_until > 0 %}
+                            <h6 class="text-muted">Time Until Appointment</h6>
+                            <p class="mb-3">
+                                <strong class="text-{% if minutes_until < 30 %}danger{% elif minutes_until < 60 %}warning{% else %}success{% endif %}">
+                                    {{ minutes_until }} minutes
+                                </strong>
+                            </p>
+                        {% else %}
+                            <h6 class="text-muted">Appointment Time</h6>
+                            <p class="mb-3">
+                                <strong class="text-info">
+                                    {% if minutes_until < 0 %}
+                                        {{ minutes_until|abs }} minutes ago
+                                    {% else %}
+                                        Now
+                                    {% endif %}
+                                </strong>
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes Section -->
+        {% if appointment.notes or appointment.patient_notes or appointment.reception_notes %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Notes</h5>
+                </div>
+                <div class="card-body">
+                    {% if appointment.notes %}
+                        <h6 class="text-muted">General Notes</h6>
+                        <p class="mb-3">{{ appointment.notes }}</p>
+                    {% endif %}
+                    
+                    {% if appointment.patient_notes %}
+                        <h6 class="text-muted">Patient Notes</h6>
+                        <p class="mb-3">{{ appointment.patient_notes }}</p>
+                    {% endif %}
+                    
+                    {% if appointment.reception_notes %}
+                        <h6 class="text-muted">Reception Notes</h6>
+                        <p class="mb-3">{{ appointment.reception_notes }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Related Appointments -->
+        {% if related_appointments %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Other Appointments Today</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Doctor</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for related in related_appointments %}
+                                    <tr>
+                                        <td>{{ related.appointment_date|time:"g:i A" }}</td>
+                                        <td>Dr. {{ related.doctor.get_full_name }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if related.status == 'confirmed' %}success{% elif related.status == 'pending' %}warning{% else %}secondary{% endif %}">
+                                                {{ related.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'appointments:appointment_detail' related.id %}" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if can_cancel %}
+                        <a href="{% url 'appointments:cancel' appointment.id %}" class="btn btn-danger">
+                            <i class="fas fa-times me-2"></i>Cancel Appointment
+                        </a>
+                    {% endif %}
+                    
+                    {% if can_reschedule %}
+                        <a href="{% url 'appointments:reschedule' appointment.id %}" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>Reschedule
+                        </a>
+                    {% endif %}
+                    
+                    <a href="{% url 'appointments:queue_status' %}" class="btn btn-outline-warning">
+                        <i class="fas fa-clock me-2"></i>Check Queue Status
+                    </a>
+                    
+                    <a href="{% url 'appointments:reminders' %}" class="btn btn-outline-info">
+                        <i class="fas fa-bell me-2"></i>View Reminders
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Doctor Information -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-user-md me-2"></i>Doctor Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2" 
+                         style="width: 80px; height: 80px;">
+                        <i class="fas fa-user-md fa-2x"></i>
+                    </div>
+                    <h6 class="mb-1">Dr. {{ appointment.doctor.get_full_name }}</h6>
+                    <p class="text-muted mb-2">{{ appointment.doctor.profile.specialization }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="text-muted">Experience</h6>
+                    <p class="mb-0">{{ appointment.doctor.profile.experience_years }} years</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="text-muted">Rating</h6>
+                    <div class="d-flex align-items-center">
+                        <div class="text-warning me-2">
+                            {% for i in "12345" %}
+                                <i class="fas fa-star{% if forloop.counter > appointment.doctor.profile.rating %}-o{% endif %}"></i>
+                            {% endfor %}
+                        </div>
+                        <span class="text-muted">{{ appointment.doctor.profile.rating }}/5</span>
+                    </div>
+                </div>
+                
+                {% if appointment.doctor.profile.phone %}
+                    <div class="mb-3">
+                        <h6 class="text-muted">Contact</h6>
+                        <p class="mb-0">{{ appointment.doctor.profile.phone }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Important Information -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Important</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6><i class="fas fa-clock me-2"></i>Arrival Time</h6>
+                    <p class="text-muted small mb-0">Please arrive 10 minutes before your scheduled time</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6><i class="fas fa-id-card me-2"></i>What to Bring</h6>
+                    <ul class="text-muted small">
+                        <li>Photo ID</li>
+                        <li>Insurance card</li>
+                        <li>List of medications</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Cancellation Policy</h6>
+                    <p class="text-muted small mb-0">Cancel at least 30 minutes before appointment time</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Auto-refresh for queue status -->
+<script>
+// Auto-refresh every 30 seconds if appointment is in queue
+{% if appointment.patient_status in 'waiting,in_consultation' %}
+setInterval(function() {
+    location.reload();
+}, 30000);
+{% endif %}
+
+// Update countdown timer
+{% if minutes_until > 0 %}
+setInterval(function() {
+    const countdownElement = document.querySelector('.countdown');
+    if (countdownElement) {
+        const currentMinutes = parseInt(countdownElement.dataset.minutes);
+        if (currentMinutes > 0) {
+            countdownElement.dataset.minutes = currentMinutes - 1;
+            countdownElement.textContent = currentMinutes - 1 + ' minutes';
+        }
+    }
+}, 60000);
+{% endif %}
+</script>
+{% endblock %} 

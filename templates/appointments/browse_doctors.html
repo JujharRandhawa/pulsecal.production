@@ -1,0 +1,229 @@
+{% extends 'appointments/base.html' %}
+
+{% block title %}Browse Doctors - Clinic Appointment System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">
+            <i class="fas fa-search me-2"></i>Find Doctors
+        </h2>
+        <p class="text-muted mb-0">Browse and search for available doctors</p>
+    </div>
+    {% if user.is_authenticated and user.profile.role == 'patient' %}
+        <a href="{% url 'appointments:patient_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    {% elif user.is_authenticated and user.profile.role == 'doctor' %}
+        <a href="{% url 'appointments:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    {% elif user.is_authenticated and user.profile.role == 'receptionist' %}
+        <a href="{% url 'appointments:reception_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    {% endif %}
+</div>
+
+<!-- Search and Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Search Doctors</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ search_query }}" placeholder="Search by name, specialization...">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label for="org_name" class="form-label">Clinic/Hospital Name</label>
+                <input type="text" class="form-control" id="org_name" name="org_name" value="{{ org_name }}" placeholder="Search by clinic or hospital name...">
+            </div>
+            <div class="col-md-2">
+                <label for="specialization" class="form-label">Specialization</label>
+                <select class="form-select" id="specialization" name="specialization">
+                    <option value="">All Specializations</option>
+                    {% for spec in specializations %}
+                        <option value="{{ spec }}" {% if specialization_filter == spec %}selected{% endif %}>
+                            {{ spec }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Search
+                    </button>
+                </div>
+            </div>
+        </form>
+        
+        {% if search_query or specialization_filter %}
+            <div class="mt-3">
+                <small class="text-muted">
+                    Showing results for 
+                    {% if search_query %}"{{ search_query }}"{% endif %}
+                    {% if search_query and specialization_filter %} and {% endif %}
+                    {% if specialization_filter %}specialization: {{ specialization_filter }}{% endif %}
+                    <a href="{% url 'appointments:browse_doctors' %}" class="ms-2">Clear filters</a>
+                </small>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Doctors List -->
+<div class="row">
+    {% if doctor_infos %}
+        {% for info in doctor_infos %}
+            {% with doctor=info.doctor %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="flex-shrink-0">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
+                                     style="width: 60px; height: 60px;">
+                                    <i class="fas fa-user-md fa-2x"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5 class="card-title mb-1">Dr. {{ doctor.get_full_name }}</h5>
+                                <p class="text-muted mb-0">{{ info.profile.specialization }}</p>
+                                <span class="badge bg-{{ info.on_duty|yesno:'success,danger' }} ms-2">{{ info.on_duty|yesno:'On Duty,Off Duty' }}</span>
+                                {% if info.organization %}
+                                    <div class="text-muted small">{{ info.organization.name }} ({{ info.organization.get_org_type_display }})</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Available Slots:</strong>
+                            {% if info.available_slots %}
+                                <ul class="list-inline mb-0">
+                                    {% for slot in info.available_slots %}
+                                        <li class="list-inline-item border rounded px-2 py-1 mb-1">
+                                            {{ slot|date:'D, M d, H:i' }}
+                                            <form method="get" action="{% url 'appointments:doctor_detail' doctor.id %}" class="d-inline">
+                                                <input type="hidden" name="slot" value="{{ slot|date:'Y-m-d\TH:i' }}">
+                                                <button type="submit" class="btn btn-sm btn-primary ms-2">Book</button>
+                                            </form>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <span class="text-muted">None</span>
+                            {% endif %}
+                        </div>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{% url 'appointments:doctor_detail' doctor.id %}" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-info-circle me-2"></i>View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-user-md fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">No doctors found</h4>
+                    <p class="text-muted">Try adjusting your search criteria or contact the clinic for assistance.</p>
+                    <a href="{% url 'appointments:browse_doctors' %}" class="btn btn-primary">
+                        <i class="fas fa-refresh me-2"></i>Clear Search
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Doctor Details Modal -->
+<div class="modal fade" id="doctorModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Doctor Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="doctorModalBody">
+                <!-- Content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="bookFromModal">Book Appointment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-primary">{{ doctor_infos.count }}</h5>
+                <p class="card-text">Available Doctors</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-success">{{ specializations.count }}</h5>
+                <p class="card-text">Specializations</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-info">24/7</h5>
+                <p class="card-text">Online Booking</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewDoctorDetails(doctorId) {
+    // This would typically load doctor details via AJAX
+    // For now, we'll just show a simple message
+    document.getElementById('doctorModalBody').innerHTML = `
+        <div class="text-center">
+            <i class="fas fa-user-md fa-3x text-primary mb-3"></i>
+            <h5>Doctor Details</h5>
+            <p>Detailed information about the doctor would be displayed here.</p>
+            <p>This could include:</p>
+            <ul class="text-start">
+                <li>Education and qualifications</li>
+                <li>Years of experience</li>
+                <li>Patient reviews</li>
+                <li>Specialized treatments</li>
+                <li>Languages spoken</li>
+            </ul>
+        </div>
+    `;
+    
+    document.getElementById('bookFromModal').onclick = function() {
+        window.location.href = `/doctor/${doctorId}/`;
+    };
+    
+    const modal = new bootstrap.Modal(document.getElementById('doctorModal'));
+    modal.show();
+}
+
+// Auto-submit form when specialization changes
+document.getElementById('specialization').addEventListener('change', function() {
+    this.form.submit();
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,31 @@
+{% extends 'appointments/base.html' %}
+
+{% block title %}About PulseCal{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h1 class="display-4 fw-bold mb-3">About PulseCal</h1>
+        <p class="lead text-muted">Secure. Reliable. Modern healthcare scheduling for everyone.</p>
+    </div>
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm p-4" style="background: var(--secondary-bg);">
+                <h3 class="mb-3 text-primary">Why PulseCal?</h3>
+                <ul class="list-unstyled fs-5 mb-4">
+                    <li class="mb-3"><i class="fas fa-lock text-success me-2"></i><strong>Secure by Design:</strong> All your data is encrypted and protected with industry best practices.</li>
+                    <li class="mb-3"><i class="fas fa-shield-alt text-primary me-2"></i><strong>Reliable Platform:</strong> 24/7 uptime, robust backups, and seamless appointment management.</li>
+                    <li class="mb-3"><i class="fas fa-user-shield text-cta me-2"></i><strong>Privacy First:</strong> We never share your information. Your privacy is our top priority.</li>
+                    <li class="mb-3"><i class="fas fa-sync-alt text-accent me-2"></i><strong>Integrated:</strong> Sync with Google Calendar, SMS reminders, and more.</li>
+                </ul>
+                <p class="text-muted">PulseCal is trusted by clinics and patients for its modern, user-friendly, and secure approach to healthcare scheduling.</p>
+            </div>
+        </div>
+    </div>
+    <div class="text-center">
+        <a href="{% url 'appointments:home' %}" class="btn btn-primary btn-lg px-4">
+            <i class="fas fa-arrow-left me-2"></i>Back to Home
+        </a>
+    </div>
+</div>
+{% endblock %} 

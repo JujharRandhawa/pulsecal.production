@@ -1,0 +1,84 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+{% block title %}Manage Roles - PulseCal{% endblock %}
+{% block content %}
+<style>
+    .admin-nav {
+        background: linear-gradient(90deg, #2563eb 60%, #3b82f6 100%);
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+        padding: 1rem 2rem;
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+        box-shadow: 0 2px 12px rgba(37,99,235,0.10);
+    }
+    .admin-nav a {
+        color: #fff;
+        font-weight: 500;
+        text-decoration: none;
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .admin-nav a.active, .admin-nav a:hover {
+        color: #fbbf24;
+        text-decoration: underline;
+    }
+</style>
+<div class="container py-5">
+    <div class="admin-nav mb-4">
+        <a href="{% url 'appointments:admin_analytics' %}"><i class="fas fa-chart-bar"></i> Analytics</a>
+        <a href="{% url 'appointments:export_appointments' %}"><i class="fas fa-file-export"></i> Export Appointments</a>
+        <a href="{% url 'appointments:export_users' %}"><i class="fas fa-users"></i> Export Users</a>
+        <a href="{% url 'appointments:import_patients' %}"><i class="fas fa-file-import"></i> Import Patients</a>
+        <a href="{% url 'appointments:manage_roles' %}" class="active"><i class="fas fa-user-shield"></i> Manage Roles</a>
+        <a href="{% url 'appointments:audit_logs' %}"><i class="fas fa-clipboard-list"></i> Audit Logs</a>
+    </div>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="mb-4 fw-bold text-center"><i class="fas fa-user-shield me-2"></i>Role Management</h2>
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                <select name="role" class="form-select form-select-sm">
+                                    {% for role in roles %}
+                                        <option value="{{ role }}" {% if user.profile.role == role %}selected{% endif %}>{{ role|title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="is_active" {% if user.is_active %}checked{% endif %}>
+                                    <label class="form-check-label">{{ user.is_active|yesno:"Active,Inactive" }}</label>
+                                </div>
+                            </td>
+                            <td>
+                                <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-save me-1"></i>Update</button>
+                            </td>
+                        </form>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

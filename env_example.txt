@@ -1,0 +1,57 @@
+# Environment Configuration
+ENVIRONMENT=production
+DEBUG=False  # Set to True only for local development
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Django Settings
+SECRET_KEY=your-secret-key-here-make-it-long-and-random
+SITE_ID=1
+
+# Database Settings
+DB_NAME=pulsecal_db
+DB_USER=pulsecal_user
+DB_PASSWORD=your-secure-database-password
+DB_HOST=localhost
+DB_PORT=5432
+
+# Redis Settings (for production WebSocket and Celery)
+REDIS_URL=redis://localhost:6379/0
+
+# Email Settings (for production)
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=your-email@gmail.com
+EMAIL_HOST_PASSWORD=your-app-password
+DEFAULT_FROM_EMAIL=noreply@pulsecal.com
+
+# Google OAuth Settings
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:8000/oauth2callback/
+
+# Google Maps API Settings
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+GOOGLE_PLACES_API_KEY=your-google-places-api-key
+
+# Security Settings (for production)
+SECURE_SSL_REDIRECT=True
+SESSION_COOKIE_SECURE=True
+CSRF_COOKIE_SECURE=True
+
+# CORS Settings (for production)
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+
+# Sentry Configuration (for production monitoring)
+SENTRY_DSN=your-sentry-dsn-here
+
+# Celery Settings (for background tasks)
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+
+# For local development, override these in your .env file:
+# DEBUG=True
+# SECURE_SSL_REDIRECT=False
+# SESSION_COOKIE_SECURE=False
+# CSRF_COOKIE_SECURE=False 

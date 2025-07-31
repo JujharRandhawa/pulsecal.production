@@ -1,0 +1,143 @@
+{% extends 'appointments/base.html' %}
+
+{% block title %}Schedule Appointment - Clinic Appointment System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">
+            <i class="fas fa-calendar-plus me-2"></i>Schedule Appointment
+        </h2>
+        <p class="text-muted mb-0">Book an appointment with your preferred doctor</p>
+    </div>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Book New Appointment</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="doctor_id" class="form-label">Select Doctor *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-user-md"></i></span>
+                                    <select class="form-select" id="doctor_id" name="doctor_id" required>
+                                        <option value="">Choose a doctor...</option>
+                                        {% for doctor in doctors %}
+                                            <option value="{{ doctor.id }}">
+                                                Dr. {{ doctor.name }} - {{ doctor.specialization }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="appointment_date" class="form-label">Date & Time *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-clock"></i></span>
+                                    <input type="datetime-local" class="form-control" id="appointment_date" name="appointment_date" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes (Optional)</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-sticky-note"></i></span>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Any specific concerns or information you'd like to share with the doctor..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-calendar-check me-2"></i>Schedule Appointment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Booking Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6><i class="fas fa-clock me-2"></i>Appointment Duration</h6>
+                    <p class="text-muted mb-0">Standard appointments are 1 hour long</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6><i class="fas fa-calendar me-2"></i>Available Times</h6>
+                    <p class="text-muted mb-0">Monday - Friday: 9:00 AM - 5:00 PM</p>
+                    <p class="text-muted mb-0">Saturday: 9:00 AM - 2:00 PM</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Important Notes</h6>
+                    <ul class="text-muted small">
+                        <li>Please arrive 10 minutes before your appointment</li>
+                        <li>Bring any relevant medical records</li>
+                        <li>Cancel at least 24 hours in advance if needed</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-user-md me-2"></i>Available Doctors</h5>
+            </div>
+            <div class="card-body">
+                {% for doctor in doctors %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <i class="fas fa-user-md"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0">Dr. {{ doctor.name }}</h6>
+                            <small class="text-muted">{{ doctor.specialization }}</small>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Set minimum date to today
+document.getElementById('appointment_date').min = new Date().toISOString().slice(0, 16);
+
+// Set default time to next available slot
+function setDefaultTime() {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0); // 9:00 AM
+    
+    const dateTimeLocal = tomorrow.toISOString().slice(0, 16);
+    document.getElementById('appointment_date').value = dateTimeLocal;
+}
+
+// Set default time when page loads
+setDefaultTime();
+</script>
+{% endblock %} 

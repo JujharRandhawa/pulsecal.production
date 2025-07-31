@@ -1,0 +1,433 @@
+{% extends 'appointments/base.html' %}
+
+{% block title %}Queue Status - Clinic Appointment System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">
+            <i class="fas fa-clock me-2"></i>Queue Status
+        </h2>
+        <p class="text-muted mb-0">Track your position and estimated wait times</p>
+    </div>
+    {% if user.is_authenticated and user.profile.role == 'patient' %}
+        <a href="{% url 'appointments:patient_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+        <a href="{% url 'appointments:patient_dashboard' %}" class="btn btn-primary">
+            <i class="fas fa-home me-2"></i>Go to Dashboard
+        </a>
+    {% elif user.is_authenticated and user.profile.role == 'doctor' %}
+        <a href="{% url 'appointments:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+        <a href="{% url 'appointments:dashboard' %}" class="btn btn-primary">
+            <i class="fas fa-home me-2"></i>Go to Dashboard
+        </a>
+    {% elif user.is_authenticated and user.profile.role == 'receptionist' %}
+        <a href="{% url 'appointments:reception_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+        <a href="{% url 'appointments:reception_dashboard' %}" class="btn btn-primary">
+            <i class="fas fa-home me-2"></i>Go to Dashboard
+        </a>
+    {% endif %}
+</div>
+
+<!-- Queue Overview -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="mb-2">
+                    <i class="fas fa-users fa-2x text-primary"></i>
+                </div>
+                <h5 class="card-title stat-value">{{ queue_appointments.count }}</h5>
+                <p class="card-text text-muted">Appointments in Queue</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="mb-2">
+                    <i class="fas fa-clock fa-2x text-warning"></i>
+                </div>
+                <h5 class="card-title estimated-wait-time">
+                    {% if queue_appointments %}
+                        {% with first_appointment=queue_appointments.first %}
+                            {% if first_appointment.estimated_wait %}
+                                {{ first_appointment.estimated_wait }} min
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        {% endwith %}
+                    {% else %}
+                        0 min
+                    {% endif %}
+                </h5>
+                <p class="card-text text-muted">Estimated Wait Time</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="mb-2">
+                    <i class="fas fa-user-md fa-2x text-success"></i>
+                </div>
+                <h5 class="card-title">
+                    {% if queue_appointments %}
+                        {{ queue_appointments.values.doctor.distinct.count }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </h5>
+                <p class="card-text text-muted">Doctors Available</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Queue Details -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Your Queue Status</h5>
+    </div>
+    <div class="card-body">
+        {% if queue_appointments %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="queue-table">
+                    <thead>
+                        <tr>
+                            <th>Position</th>
+                            <th>Doctor</th>
+                            <th>Scheduled Time</th>
+                            <th>Current Status</th>
+                            <th>Estimated Wait</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appointment in queue_appointments %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" 
+                                             style="width: 30px; height: 30px;">
+                                            {{ forloop.counter }}
+                                        </div>
+                                        {% if appointment.patient_status == 'waiting' %}
+                                            <span class="badge bg-warning">Waiting</span>
+                                        {% elif appointment.patient_status == 'in_consultation' %}
+                                            <span class="badge bg-info">In Consultation</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>{{ appointment.doctor.get_full_name }}</strong><br>
+                                    <small class="text-muted">{{ appointment.doctor.profile.specialization }}</small>
+                                </td>
+                                <td>
+                                    <strong>{{ appointment.appointment_date|time:"g:i A" }}</strong><br>
+                                    <small class="text-muted">{{ appointment.appointment_date|date:"M d, Y" }}</small>
+                                </td>
+                                <td>
+                                    <span class="status-badge patient-{{ appointment.patient_status|slugify }}">
+                                        {{ appointment.get_patient_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if appointment.estimated_wait %}
+                                        <strong>{{ appointment.estimated_wait }} minutes</strong><br>
+                                        <small class="text-muted">
+                                            {% if appointment.estimated_wait > 60 %}
+                                                ~{{ appointment.estimated_wait|floatformat:0|add:"-1"|floatformat:1 }} hours
+                                            {% else %}
+                                                Less than 1 hour
+                                            {% endif %}
+                                        </small>
+                                    {% else %}
+                                        <span class="text-muted">Calculating...</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="refreshQueue()" title="Refresh">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                        <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="btn btn-outline-info" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                <h4 class="text-success">No appointments in queue!</h4>
+                <p class="text-muted">You have no appointments waiting in the queue today.</p>
+                {% if user.is_authenticated and user.profile.role == 'patient' %}
+                    <a href="{% url 'appointments:patient_dashboard' %}" class="btn btn-primary">
+                        <i class="fas fa-home me-2"></i>Go to Dashboard
+                    </a>
+                {% elif user.is_authenticated and user.profile.role == 'doctor' %}
+                    <a href="{% url 'appointments:dashboard' %}" class="btn btn-primary">
+                        <i class="fas fa-home me-2"></i>Go to Dashboard
+                    </a>
+                {% elif user.is_authenticated and user.profile.role == 'receptionist' %}
+                    <a href="{% url 'appointments:reception_dashboard' %}" class="btn btn-primary">
+                        <i class="fas fa-home me-2"></i>Go to Dashboard
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Queue Tips -->
+<div class="row mt-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Queue Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-clock me-2"></i>Wait Time Estimates</h6>
+                        <ul class="text-muted small">
+                            <li>Average consultation: 15-20 minutes</li>
+                            <li>Emergency cases may be prioritized</li>
+                            <li>Wait times are approximate</li>
+                            <li>Updates every 5 minutes</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Important Notes</h6>
+                        <ul class="text-muted small">
+                            <li>Arrive 10 minutes before your scheduled time</li>
+                            <li>Bring your ID and insurance card</li>
+                            <li>Notify staff if you need to leave temporarily</li>
+                            <li>Emergency? Contact the front desk immediately</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-phone me-2"></i>Need Help?</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="tel:+1-555-EMERGENCY" class="btn btn-danger">
+                        <i class="fas fa-phone me-2"></i>Emergency Contact
+                    </a>
+                    <a href="tel:+1-555-CLINIC" class="btn btn-outline-primary">
+                        <i class="fas fa-phone me-2"></i>Clinic Reception
+                    </a>
+                    <button class="btn btn-outline-info" onclick="refreshQueue()">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh Queue
+                    </button>
+                </div>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <h6><i class="fas fa-clock me-2"></i>Clinic Hours</h6>
+                    <p class="text-muted small mb-0">Monday - Friday: 9:00 AM - 5:00 PM</p>
+                    <p class="text-muted small mb-0">Saturday: 9:00 AM - 2:00 PM</p>
+                    <p class="text-muted small">Sunday: Closed</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Real-time Updates Notice -->
+<div class="alert alert-info mt-4" role="alert">
+    <div class="d-flex align-items-center">
+        <i class="fas fa-info-circle me-2"></i>
+        <div>
+            <strong>Real-time Updates:</strong> This page automatically updates every 30 seconds to show the latest queue status. 
+            Changes from cancellations and reschedules will appear immediately.
+        </div>
+    </div>
+</div>
+
+<!-- Last Updated Indicator -->
+<div class="text-center mt-3">
+    <small class="text-muted">
+        <i class="fas fa-clock me-1"></i>
+        Last updated: <span id="last-updated">{{ "now"|date:"g:i:s A" }}</span>
+    </small>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let updateInterval;
+
+function updateQueueStatus() {
+    fetch('{% url "appointments:queue_status_api" %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.appointments && data.appointments.length > 0) {
+                updateQueueTable(data.appointments);
+                updateQueueStats(data);
+            } else {
+                // No appointments in queue
+                const queueTable = document.querySelector('#queue-table');
+                if (queueTable) {
+                    queueTable.innerHTML = `
+                        <div class="text-center py-5">
+                            <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                            <h4 class="text-success">No appointments in queue!</h4>
+                            <p class="text-muted">You have no appointments waiting in the queue today.</p>
+                        </div>
+                    `;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error updating queue status:', error);
+        });
+}
+
+function updateQueueTable(appointments) {
+    const tbody = document.querySelector('#queue-table tbody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    appointments.forEach((appointment, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" 
+                         style="width: 30px; height: 30px;">
+                        ${index + 1}
+                    </div>
+                    <span class="badge bg-${appointment.status_class === 'waiting' ? 'warning' : 'info'}">${appointment.status}</span>
+                </div>
+            </td>
+            <td>
+                <strong>${appointment.doctor_name}</strong><br>
+                <small class="text-muted">${appointment.doctor_specialization}</small>
+            </td>
+            <td>
+                <strong>${appointment.appointment_time}</strong><br>
+                <small class="text-muted">${appointment.appointment_date}</small>
+            </td>
+            <td>
+                <span class="status-badge patient-${appointment.status_class}">
+                    ${appointment.status}
+                </span>
+            </td>
+            <td>
+                ${appointment.estimated_wait > 0 ? 
+                    `<strong>${appointment.estimated_wait} minutes</strong><br>
+                     <small class="text-muted">
+                         ${appointment.estimated_wait > 60 ? 
+                             `~${Math.round((appointment.estimated_wait - 1) / 60 * 10) / 10} hours` : 
+                             'Less than 1 hour'}
+                     </small>` : 
+                    '<span class="text-muted">Calculating...</span>'
+                }
+            </td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" onclick="refreshQueue()" title="Refresh">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <a href="/appointment/${appointment.id}/" class="btn btn-outline-info" title="View Details">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function updateQueueStats(data) {
+    // Update stats cards
+    const totalElement = document.querySelector('.stat-value');
+    if (totalElement) {
+        totalElement.textContent = data.total_in_queue;
+    }
+    
+    const waitTimeElement = document.querySelector('.estimated-wait-time');
+    if (waitTimeElement) {
+        waitTimeElement.textContent = data.estimated_total_wait > 0 ? 
+            `${data.estimated_total_wait} min` : 'N/A';
+    }
+    
+    // Update last updated time
+    const lastUpdatedElement = document.getElementById('last-updated');
+    if (lastUpdatedElement) {
+        const now = new Date();
+        lastUpdatedElement.textContent = now.toLocaleTimeString();
+    }
+}
+
+function refreshQueue() {
+    // Show loading indicator
+    const refreshBtn = document.querySelector('.btn-outline-primary i.fa-sync-alt');
+    if (refreshBtn) {
+        refreshBtn.classList.add('fa-spin');
+    }
+    
+    updateQueueStatus();
+    
+    // Stop spinning after update
+    setTimeout(function() {
+        if (refreshBtn) {
+            refreshBtn.classList.remove('fa-spin');
+        }
+    }, 1000);
+}
+
+// Start real-time updates
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.querySelector('#queue-table')) {
+        updateQueueStatus();
+        updateInterval = setInterval(updateQueueStatus, 30000); // Update every 30 seconds
+    }
+    
+    // Add click event to refresh button
+    const refreshBtn = document.querySelector('.btn-outline-primary[onclick="refreshQueue()"]');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            refreshQueue();
+        });
+    }
+});
+
+// Show notification when page becomes visible (user returns to tab)
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        // Refresh queue when user returns to the tab
+        refreshQueue();
+    }
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (updateInterval) {
+        clearInterval(updateInterval);
+    }
+});
+</script>
+{% endblock %} 

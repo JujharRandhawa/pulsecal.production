@@ -1,0 +1,625 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+
+{% block title %}{{ doctor.name }} - PulseCal{% endblock %}
+
+{% block extra_head %}
+<style>
+    .doctor-detail-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .doctor-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--cta-color));
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .doctor-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    }
+    
+    .doctor-info {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .doctor-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 4px solid white;
+        object-fit: cover;
+        margin-bottom: 20px;
+    }
+    
+    .doctor-name {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    
+    .doctor-specialization {
+        font-size: 1.2rem;
+        opacity: 0.9;
+        margin-bottom: 15px;
+    }
+    
+    .doctor-rating {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+    
+    .doctor-status {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .status-on-duty {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .status-off-duty {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+        margin-top: 30px;
+    }
+    
+    .main-content {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        padding: 25px;
+    }
+    
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .sidebar-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        padding: 20px;
+    }
+    
+    .section-title {
+        color: var(--primary-color);
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+        border-bottom: 2px solid var(--primary-color);
+        padding-bottom: 8px;
+    }
+    
+    .info-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 12px;
+        padding: 10px;
+        background: var(--secondary-bg);
+        border-radius: 8px;
+    }
+    
+    .info-icon {
+        width: 40px;
+        height: 40px;
+        background: var(--primary-color);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 1.1rem;
+    }
+    
+    .info-content {
+        flex: 1;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 2px;
+    }
+    
+    .info-value {
+        color: var(--text-color);
+        font-size: 1rem;
+    }
+    
+    .map-container {
+        height: 300px;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    #doctor-map {
+        height: 100%;
+        width: 100%;
+    }
+    
+    .similar-doctors {
+        margin-top: 20px;
+    }
+    
+    .doctor-card {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .doctor-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    .doctor-card-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        margin-right: 15px;
+        background: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+    
+    .doctor-card-info {
+        flex: 1;
+    }
+    
+    .doctor-card-name {
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+    
+    .doctor-card-specialization {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+    
+    .appointment-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .appointment-item {
+        padding: 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        background: var(--secondary-bg);
+    }
+    
+    .appointment-time {
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .appointment-patient {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    
+    .btn-book {
+        background: var(--cta-color);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-book:hover {
+        background: var(--accent-color);
+        color: white;
+        text-decoration: none;
+        transform: translateY(-2px);
+    }
+    
+    .btn-back {
+        background: var(--secondary-color);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-back:hover {
+        background: #6c757d;
+        color: white;
+        text-decoration: none;
+    }
+    
+    @media (max-width: 768px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .doctor-name {
+            font-size: 2rem;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="doctor-detail-container">
+    <div class="doctor-header">
+        <div class="doctor-info text-center">
+            {% if doctor.avatar_url %}
+                <img src="{{ doctor.avatar_url }}" alt="{{ doctor.name }}" class="doctor-avatar">
+            {% else %}
+                <div class="doctor-avatar" style="background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 3rem;">
+                    👨‍⚕️
+                </div>
+            {% endif %}
+            
+            <h1 class="doctor-name">{{ doctor.name }}</h1>
+            <p class="doctor-specialization">{{ doctor.specialization }}</p>
+            
+            <div class="doctor-rating">
+                {% for i in "12345" %}
+                    {% if forloop.counter <= doctor.rating %}
+                        <i class="fas fa-star text-warning"></i>
+                    {% else %}
+                        <i class="far fa-star text-warning"></i>
+                    {% endif %}
+                {% endfor %}
+                <span class="ms-2">{{ doctor.rating }}/5</span>
+            </div>
+            
+            <span class="doctor-status {% if doctor.on_duty %}status-on-duty{% else %}status-off-duty{% endif %}">
+                {% if doctor.on_duty %}
+                    <i class="fas fa-circle text-success"></i> On Duty
+                {% else %}
+                    <i class="fas fa-circle text-danger"></i> Off Duty
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <div class="content-grid">
+        <div class="main-content">
+            <h3 class="section-title"><i class="fas fa-user-md"></i> Doctor Information</h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="fas fa-hospital"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Organization</div>
+                            <div class="info-value">{{ doctor.organization }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Address</div>
+                            <div class="info-value">{{ doctor.address }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Phone</div>
+                            <div class="info-value">{{ doctor.phone|default:"Not available" }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Email</div>
+                            <div class="info-value">{{ doctor.email }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Experience</div>
+                            <div class="info-value">{{ doctor.experience_years }} years</div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Consultation Fee</div>
+                            <div class="info-value">${{ doctor.consultation_fee }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="fas fa-language"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Languages</div>
+                            <div class="info-value">{{ doctor.languages|join:", "|default:"English" }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="fas fa-certificate"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Certifications</div>
+                            <div class="info-value">{{ doctor.certifications|join:", "|default:"Board Certified" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if doctor.bio %}
+            <div class="mt-4">
+                <h4><i class="fas fa-file-alt"></i> Biography</h4>
+                <p>{{ doctor.bio }}</p>
+            </div>
+            {% endif %}
+            
+            <div class="action-buttons">
+                <a href="{% url 'appointments:schedule' %}?doctor={{ doctor.id }}" class="btn-book">
+                    <i class="fas fa-calendar-plus"></i> Book Appointment
+                </a>
+                <a href="{% url 'appointments:doctors_map' %}" class="btn-back">
+                    <i class="fas fa-arrow-left"></i> Back to Map
+                </a>
+            </div>
+        </div>
+        
+        <div class="sidebar">
+            <div class="sidebar-card">
+                <h4 class="section-title"><i class="fas fa-map-marker-alt"></i> Location</h4>
+                <div class="map-container">
+                    <div id="doctor-map">
+                        <div style="height: 100%; display: flex; align-items: center; justify-content: center; background: #f8f9fa; color: #6c757d;">
+                            <div class="text-center">
+                                <i class="fas fa-spinner fa-spin fa-2x mb-2"></i><br>
+                                Loading map...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if similar_doctors %}
+            <div class="sidebar-card">
+                <h4 class="section-title"><i class="fas fa-users"></i> Similar Doctors</h4>
+                <div class="similar-doctors">
+                    {% for similar in similar_doctors %}
+                    <div class="doctor-card">
+                        <div class="doctor-card-avatar">
+                            {{ similar.name|slice:":1" }}
+                        </div>
+                        <div class="doctor-card-info">
+                            <div class="doctor-card-name">{{ similar.name }}</div>
+                            <div class="doctor-card-specialization">{{ similar.specialization }}</div>
+                            <div class="doctor-card-specialization">{{ similar.organization }}</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="doctor-rating">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= similar.rating %}
+                                        <i class="fas fa-star text-warning" style="font-size: 0.8rem;"></i>
+                                    {% else %}
+                                        <i class="far fa-star text-warning" style="font-size: 0.8rem;"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted">
+                                {% if similar.on_duty %}
+                                    <span class="text-success">On Duty</span>
+                                {% else %}
+                                    <span class="text-danger">Off Duty</span>
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if upcoming_appointments %}
+            <div class="sidebar-card">
+                <h4 class="section-title"><i class="fas fa-calendar-check"></i> Upcoming Appointments</h4>
+                <div class="appointment-list">
+                    {% for appointment in upcoming_appointments %}
+                    <div class="appointment-item">
+                        <div class="appointment-time">{{ appointment.scheduled_time }}</div>
+                        <div class="appointment-patient">{{ appointment.patient_name }}</div>
+                        <small class="text-muted">Status: {{ appointment.status|title }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Doctor detail map functionality
+let doctorMap;
+const doctorData = {
+    id: {{ doctor.id }},
+    name: "{{ doctor.name }}",
+    specialization: "{{ doctor.specialization }}",
+    organization: "{{ doctor.organization }}",
+    address: "{{ doctor.address }}",
+    latitude: {{ doctor.latitude }},
+    longitude: {{ doctor.longitude }},
+    on_duty: {{ doctor.on_duty|yesno:"true,false" }},
+    rating: {{ doctor.rating }},
+    apiKey: '{{ api_key }}'
+};
+
+console.log('Doctor detail page loaded');
+console.log('Doctor data:', doctorData);
+
+function initDoctorMap() {
+    console.log('Initializing doctor detail map...');
+    
+    if (!doctorData.apiKey) {
+        console.error('No API key provided');
+        document.getElementById('doctor-map').innerHTML = 
+            '<div style="height: 100%; display: flex; align-items: center; justify-content: center; background: #f8f9fa; color: #6c757d;">' +
+            '<div class="text-center"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>Google Maps API Key not configured</div></div>';
+        return;
+    }
+
+    try {
+        const center = { lat: doctorData.latitude, lng: doctorData.longitude };
+        
+        console.log('Creating doctor map with center:', center);
+
+        doctorMap = new google.maps.Map(document.getElementById('doctor-map'), {
+            zoom: 15,
+            center: center,
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            mapTypeControl: true,
+            streetViewControl: true,
+            fullscreenControl: true
+        });
+
+        // Add doctor marker
+        const marker = new google.maps.Marker({
+            position: center,
+            map: doctorMap,
+            title: doctorData.name,
+            icon: {
+                url: doctorData.on_duty 
+                    ? 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                    : 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                scaledSize: new google.maps.Size(40, 40)
+            }
+        });
+
+        // Add info window
+        const infoWindow = new google.maps.InfoWindow({
+            content: `
+                <div style="padding: 10px; max-width: 250px;">
+                    <h5 style="color: #2563eb; margin-bottom: 8px;">${doctorData.name}</h5>
+                    <p><strong>Specialization:</strong> ${doctorData.specialization}</p>
+                    <p><strong>Organization:</strong> ${doctorData.organization}</p>
+                    <p><strong>Address:</strong> ${doctorData.address}</p>
+                    <p><strong>Rating:</strong> ${'★'.repeat(Math.floor(doctorData.rating))}${'☆'.repeat(5-Math.floor(doctorData.rating))} ${doctorData.rating}/5</p>
+                    <p><strong>Status:</strong> <span style="color: ${doctorData.on_duty ? '#059669' : '#dc2626'};">${doctorData.on_duty ? 'On Duty' : 'Off Duty'}</span></p>
+                </div>
+            `
+        });
+
+        marker.addListener('click', () => {
+            infoWindow.open(doctorMap, marker);
+        });
+
+        // Automatically open info window
+        infoWindow.open(doctorMap, marker);
+
+        console.log('Doctor detail map created successfully');
+        
+    } catch (error) {
+        console.error('Error creating doctor detail map:', error);
+        document.getElementById('doctor-map').innerHTML = 
+            '<div style="height: 100%; display: flex; align-items: center; justify-content: center; background: #fff5f5; color: #dc3545;">' +
+            '<div class="text-center"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>Error loading map: ' + error.message + '</div></div>';
+    }
+}
+
+// Load Google Maps API
+function loadGoogleMapsAPI() {
+    console.log('Loading Google Maps API for doctor detail...');
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${doctorData.apiKey}&libraries=places&callback=initDoctorMap`;
+    script.async = true;
+    script.defer = true;
+    script.onerror = function() {
+        console.error('Failed to load Google Maps API');
+        document.getElementById('doctor-map').innerHTML = 
+            '<div style="height: 100%; display: flex; align-items: center; justify-content: center; background: #fff5f5; color: #dc3545;">' +
+            '<div class="text-center"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>Failed to load Google Maps API</div></div>';
+    };
+    document.head.appendChild(script);
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing doctor detail map...');
+    
+    if (doctorData.apiKey) {
+        loadGoogleMapsAPI();
+    } else {
+        console.error('Google Maps API key not configured');
+        document.getElementById('doctor-map').innerHTML = 
+            '<div style="height: 100%; display: flex; align-items: center; justify-content: center; background: #fff5f5; color: #dc3545;">' +
+            '<div class="text-center"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>Google Maps API Key not configured</div></div>';
+    }
+});
+</script>
+{% endblock %} 

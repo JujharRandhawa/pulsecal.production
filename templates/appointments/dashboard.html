@@ -1,0 +1,453 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+{% load get_item %}
+
+{% block title %}Dashboard - PulseCal Healthcare{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4">
+    <div class="col-md-8">
+        <h2 class="fw-bold mb-1">
+            <i class="fas fa-tachometer-alt me-2 text-primary"></i>Dashboard
+        </h2>
+        <p class="text-muted mb-0 fs-5">Welcome back, <span class="fw-semibold">{{ user.get_full_name|default:user.username }}</span>!</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        {% if user.profile.role == 'patient' %}
+            <a href="{% url 'appointments:schedule' %}" class="btn btn-primary btn-lg me-2">
+                <i class="fas fa-plus me-2"></i>Schedule Appointment
+            </a>
+        {% endif %}
+        <a href="{% url 'appointments:calendar' %}" class="btn btn-outline-primary btn-lg">
+            <i class="fas fa-calendar me-2"></i>View Calendar
+        </a>
+    </div>
+</div>
+
+{% if user.is_authenticated %}
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{% url 'appointments:google_calendar_init' %}" class="btn btn-outline-primary me-2">
+            <i class="fab fa-google me-1"></i>Sync with Google Calendar
+        </a>
+        {% if user.profile.role in 'doctor,receptionist,admin' %}
+            <a href="{% url 'appointments:export_appointments_enhanced' %}" class="btn btn-outline-success me-2">
+                <i class="fas fa-file-export me-1"></i>Export Appointments
+            </a>
+            <a href="{% url 'appointments:auto_export_appointments' %}" class="btn btn-outline-info me-2">
+                <i class="fas fa-sync me-1"></i>Auto Export
+            </a>
+        {% endif %}
+        {% if user.profile.role == 'patient' %}
+            <a href="{% url 'appointments:nearby_clinics' %}" class="btn btn-outline-warning me-2">
+                <i class="fas fa-map-marker-alt me-1"></i>Find Clinics
+            </a>
+            <a href="{% url 'appointments:search_clinics' %}" class="btn btn-outline-info">
+                <i class="fas fa-search me-1"></i>Search Clinics
+            </a>
+        {% endif %}
+    </div>
+{% endif %}
+
+{% if user.profile.role == 'doctor' %}
+    <div class="mb-4">
+        <form method="post" class="d-inline">
+            {% csrf_token %}
+            {{ duty_form.on_duty }} <label for="id_on_duty" class="form-label fw-bold">On Duty</label>
+            <button type="submit" name="toggle_duty" class="btn btn-sm btn-outline-primary ms-2">Update</button>
+        </form>
+        <span class="ms-3 badge bg-{{ user.profile.on_duty|yesno:'success,danger' }}">
+            {{ user.profile.on_duty|yesno:'On Duty,Off Duty' }}
+        </span>
+    </div>
+    <div class="mb-4">
+        <h5>Organization Membership</h5>
+        {% if current_org %}
+            <div class="alert alert-success mb-2">
+                You are a member of <strong>{{ current_org.name }}</strong> ({{ current_org.get_org_type_display }})<br>
+                {% if current_org.address %}<span class="text-muted">{{ current_org.address }}</span><br>{% endif %}
+                {% if current_org.contact_info %}<span class="text-muted">Contact: {{ current_org.contact_info }}</span>{% endif %}
+            </div>
+        {% else %}
+            <div class="alert alert-warning mb-2">You are not a member of any organization.</div>
+        {% endif %}
+        {% if join_requests %}
+            <div class="mb-2">
+                <strong>Pending/Recent Join Requests:</strong>
+                <ul class="list-group list-group-flush">
+                    {% for req in join_requests %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ req.organization.name }} ({{ req.organization.get_org_type_display }})
+                            <span class="badge bg-{% if req.status == 'pending' %}secondary{% elif req.status == 'approved' %}success{% else %}danger{% endif %}">{{ req.get_status_display }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        {% if user.profile.role == 'doctor' and not current_org and not join_requests and joinable_organizations %}
+            <div class="alert alert-info mb-3">
+                <strong>Are you a doctor looking to join a clinic or hospital?</strong><br>
+                Request to join an existing organization below. Your request will be reviewed by the organization admin.
+            </div>
+        {% endif %}
+        {% if user.profile.role == 'doctor' and not current_org and joinable_organizations %}
+            <div class="mt-3">
+                <label class="form-label">Request to Join an Organization:</label>
+                <ul class="list-group">
+                    {% for org in joinable_organizations %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>{{ org.name }} ({{ org.get_org_type_display }})</span>
+                        <form method="post" class="d-inline mb-0">
+                            {% csrf_token %}
+                            <button type="submit" name="request_join" value="{{ org.id }}" class="btn btn-sm btn-outline-primary">Request Join</button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    </div>
+{% endif %}
+
+{% if user.profile.role in 'admin,receptionist' and user.profile.organization %}
+    <div class="mb-4">
+        <a href="{% url 'appointments:manage_org_join_requests' %}" class="btn btn-outline-primary btn-lg">
+            <i class="fas fa-user-plus me-2"></i>Manage Doctor Join Requests
+        </a>
+    </div>
+{% endif %}
+
+{% if user.profile.role == 'receptionist' and user.profile.organization %}
+    <div class="mb-4">
+        <h5>Member Doctors in {{ user.profile.organization.name }}</h5>
+        {% with member_doctors=member_doctors|default:None %}
+            {% if member_doctors %}
+                <ul class="list-group">
+                    {% for doc in member_doctors %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{{ doc.user.get_full_name }} ({{ doc.specialization|default:'No specialization' }})</span>
+                            <span class="badge bg-primary">Doctor</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="text-muted">No doctors are currently members of this organization.</div>
+            {% endif %}
+        {% endwith %}
+    </div>
+{% endif %}
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    {% comment %} Modern, visually distinct stat cards {% endcomment %}
+    <div class="col-6 col-md-3">
+        <div class="card stat-card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="stat-icon bg-primary text-white mb-2"><i class="fas fa-calendar-check"></i></div>
+                <div class="stat-value">{{ total_appointments }}</div>
+                <div class="stat-label">Total Appointments</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="stat-icon bg-warning text-white mb-2"><i class="fas fa-clock"></i></div>
+                <div class="stat-value">{{ pending_appointments }}</div>
+                <div class="stat-label">Pending</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="stat-icon bg-success text-white mb-2"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-value">{{ accepted_appointments }}</div>
+                <div class="stat-label">Accepted</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="stat-icon bg-danger text-white mb-2"><i class="fas fa-times-circle"></i></div>
+                <div class="stat-value">{{ declined_appointments }}</div>
+                <div class="stat-label">Declined</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="stat-icon bg-info text-white mb-2"><i class="fas fa-check-double"></i></div>
+                <div class="stat-value">{{ completed_appointments }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+    </div>
+    {% if user.profile.role == 'doctor' %}
+    <div class="col-6 col-md-3">
+        <div class="card stat-card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="stat-icon bg-secondary text-white mb-2"><i class="fas fa-user-clock"></i></div>
+                <div class="stat-value">{{ waiting_patients }}</div>
+                <div class="stat-label">Waiting</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="stat-icon bg-primary text-white mb-2"><i class="fas fa-user-md"></i></div>
+                <div class="stat-value">{{ in_consultation }}</div>
+                <div class="stat-label">In Consultation</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="stat-icon bg-success text-white mb-2"><i class="fas fa-user-check"></i></div>
+                <div class="stat-value">{{ done_patients }}</div>
+                <div class="stat-label">Done</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="stat-icon bg-success text-white mb-2"><i class="fas fa-dollar-sign"></i></div>
+                <div class="stat-value">${{ total_revenue|floatformat:2 }}</div>
+                <div class="stat-label">Total Revenue</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="stat-icon bg-primary text-white mb-2"><i class="fas fa-calendar-week"></i></div>
+                <div class="stat-value">{{ appts_last_7 }}</div>
+                <div class="stat-label">Appts (7d)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="stat-icon bg-primary text-white mb-2"><i class="fas fa-calendar-alt"></i></div>
+                <div class="stat-value">{{ appts_last_30 }}</div>
+                <div class="stat-label">Appts (30d)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card border-0 shadow-sm text-center">
+            <div class="card-body">
+                <div class="stat-icon bg-success text-white mb-2"><i class="fas fa-percentage"></i></div>
+                <div class="stat-value">{{ completion_rate|floatformat:1 }}%</div>
+                <div class="stat-label">Completion Rate</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+<style>
+    .stat-card { background: #fff; border-radius: 1.25rem; }
+    .stat-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 1.7rem; margin: 0 auto 0.5rem auto; box-shadow: 0 2px 8px rgba(37,99,235,0.08); }
+    .stat-value { font-size: 2.1rem; font-weight: 700; color: #2563eb; }
+    .stat-label { font-size: 1.05rem; color: #6b7280; font-weight: 500; letter-spacing: 0.2px; }
+</style>
+
+<!-- Filter Bar -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form class="row g-2 align-items-center" id="filterForm" autocomplete="off">
+            <div class="col-md-4">
+                <label for="filter-date" class="form-label visually-hidden">Date</label>
+                <input type="date" class="form-control" id="filter-date" name="date" aria-label="Filter by date" value="{{ filter_date|default:'' }}">
+            </div>
+            <div class="col-md-4">
+                <label for="filter-status" class="form-label visually-hidden">Status</label>
+                <select class="form-select" id="filter-status" name="status" aria-label="Filter by status">
+                    <option value="" {% if not filter_status %}selected{% endif %}>All Statuses</option>
+                    <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="accepted" {% if filter_status == 'accepted' %}selected{% endif %}>Accepted</option>
+                    <option value="declined" {% if filter_status == 'declined' %}selected{% endif %}>Declined</option>
+                    <option value="completed" {% if filter_status == 'completed' %}selected{% endif %}>Completed</option>
+                </select>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <button type="submit" class="btn btn-outline-primary px-4" aria-label="Apply filters">Apply Filters</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Appointments List -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-0 pb-0">
+        <h5 class="mb-0 fw-bold">
+            <i class="fas fa-list me-2 text-primary"></i>
+            {% if user.profile.role == 'doctor' %}
+                My Patient Appointments
+            {% else %}
+                My Appointments
+            {% endif %}
+        </h5>
+    </div>
+    <div class="card-body" id="appointments-list">
+        <div id="appointments-loading" class="text-center py-5" style="display:none;">
+            <div class="spinner-border text-primary mb-3" role="status" aria-label="Loading appointments..."></div>
+            <div class="text-muted">Loading appointments...</div>
+        </div>
+        <div id="appointments-skeleton" style="display:none;">
+            {% for _ in "1234" %}
+            <div class="skeleton-row mb-3 p-3 rounded bg-light">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="skeleton-box" style="width: 80px; height: 18px;"></div>
+                    <div class="skeleton-box" style="width: 120px; height: 18px;"></div>
+                    <div class="skeleton-box" style="width: 60px; height: 18px;"></div>
+                    <div class="skeleton-box" style="width: 100px; height: 18px;"></div>
+                    <div class="skeleton-box" style="width: 80px; height: 18px;"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div id="appointments-table">
+            {% if appointments %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date & Time</th>
+                            {% if user.profile.role == 'doctor' %}
+                                <th>Patient</th>
+                            {% else %}
+                                <th>Doctor</th>
+                            {% endif %}
+                            <th>Status</th>
+                            {% if user.profile.role == 'doctor' %}
+                                <th>Patient Status</th>
+                            {% endif %}
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appointment in appointments %}
+                        <tr>
+                            <td>
+                                <strong>{{ appointment.appointment_date|date:"F d, Y" }}</strong><br>
+                                <small class="text-muted">{{ appointment.appointment_date|time:"g:i A" }}</small>
+                            </td>
+                            <td>
+                                {% if user.profile.role == 'doctor' %}
+                                    <strong>{{ appointment.patient.get_full_name }}</strong><br>
+                                    <small class="text-muted">{{ appointment.patient.email }}</small>
+                                {% else %}
+                                    <strong>{{ appointment.doctor.get_full_name }}</strong><br>
+                                    <small class="text-muted">{{ appointment.doctor.profile.specialization }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ appointment.status }}">
+                                    {{ appointment.get_status_display }}
+                                </span>
+                            </td>
+                            {% if user.profile.role == 'doctor' %}
+                                <td>
+                                    <span class="status-badge status-{{ appointment.patient_status|slugify }}">
+                                        {{ appointment.get_patient_status_display }}
+                                    </span>
+                                </td>
+                            {% endif %}
+                            <td>
+                                {% if appointment.notes %}
+                                    <small>{{ appointment.notes|truncatechars:50 }}</small>
+                                {% else %}
+                                    <small class="text-muted">No notes</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    {% if user.profile.role == 'patient' and appointment.organization %}
+                                        <a href="{% url 'appointments:appointment_directions' appointment.id %}" 
+                                           class="btn btn-outline-warning btn-sm" title="Get Directions">
+                                            <i class="fas fa-route"></i>
+                                        </a>
+                                    {% endif %}
+                                    <a href="{% url 'appointments:reschedule' appointment.id %}" 
+                                       class="btn btn-outline-primary btn-sm" title="Reschedule">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </a>
+                                    <button class="btn btn-outline-danger btn-sm" 
+                                            onclick="cancelAppointment('{{ appointment.id }}')" title="Cancel">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% if user.profile.role in 'doctor,receptionist' %}
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="appt_id" value="{{ appointment.id }}">
+                                        <select name="new_status" class="form-select form-select-sm d-inline w-auto">
+                                            {% for status in available_patient_statuses %}
+                                                <option value="{{ status.value }}" {% if appointment.patient_status == status.value %}selected{% endif %}>{{ status.label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit" name="update_patient_status" class="btn btn-outline-secondary btn-sm ms-1">Update</button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No appointments found</h5>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<style>
+    .skeleton-box {
+        background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.2s infinite linear;
+        border-radius: 6px;
+    }
+    @keyframes skeleton-loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+</style>
+
+{% if user.profile.role == 'doctor' %}
+    <div class="mb-4">
+        <h5>Current Appointment:</h5>
+        {% if current_appointment %}
+            <div>{{ current_appointment.appointment_date|date:'D, M d, H:i' }} with {{ current_appointment.patient.get_full_name }}</div>
+        {% else %}
+            <div class="text-muted">No current appointment</div>
+        {% endif %}
+        <h5 class="mt-3">Next Appointment:</h5>
+        {% if next_appointment %}
+            <div>{{ next_appointment.appointment_date|date:'D, M d, H:i' }} with {{ next_appointment.patient.get_full_name }}</div>
+        {% else %}
+            <div class="text-muted">No upcoming appointment</div>
+        {% endif %}
+        <h5 class="mt-3">Available Time Slots (next 7 days):</h5>
+        {% if available_slots %}
+            <ul class="list-inline">
+                {% for slot in available_slots|slice:':10' %}
+                    <li class="list-inline-item border rounded px-2 py-1 mb-1">{{ slot|date:'D, M d, H:i' }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="text-muted">No available slots (off duty or fully booked)</div>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %} 

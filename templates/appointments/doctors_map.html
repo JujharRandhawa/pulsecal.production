@@ -1,0 +1,331 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+
+{% block title %}Doctors Map - PulseCal{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<style>
+    .doctors-map-container {
+        display: flex;
+        flex-direction: row;
+        height: calc(100vh - 120px);
+        gap: 20px;
+    }
+    .sidebar {
+        width: 350px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        padding: 20px 10px 20px 20px;
+        overflow-y: auto;
+        max-height: 100%;
+    }
+    .sidebar .filter-group {
+        margin-bottom: 18px;
+    }
+    .sidebar .doctor-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        margin-bottom: 15px;
+        padding: 15px;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        transition: box-shadow 0.2s;
+    }
+    .sidebar .doctor-card:hover {
+        box-shadow: 0 4px 16px rgba(37,99,235,0.10);
+        background: #e9f1ff;
+    }
+    .doctor-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 15px;
+        border: 2px solid #e0e0e0;
+        background: #e0e0e0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+    }
+    .doctor-info {
+        flex: 1;
+    }
+    .doctor-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 2px;
+    }
+    .doctor-specialization {
+        font-size: 0.95rem;
+        color: #2563eb;
+        margin-bottom: 2px;
+    }
+    .doctor-org {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 2px;
+    }
+    .doctor-rating {
+        color: #ffc107;
+        font-size: 0.95rem;
+    }
+    .doctor-status {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin-left: 8px;
+    }
+    .status-on-duty {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    .status-off-duty {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    .doctor-actions {
+        margin-top: 8px;
+    }
+    .doctor-actions a {
+        margin-right: 8px;
+        font-size: 0.9rem;
+    }
+    .map-section {
+        flex: 1 1 0;
+        position: relative;
+        min-width: 0;
+    }
+    #doctors-map {
+        height: 100%;
+        width: 100%;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        border: 2px solid #e0e0e0;
+    }
+    .leaflet-popup-content {
+        min-width: 220px;
+    }
+    @media (max-width: 900px) {
+        .doctors-map-container {
+            flex-direction: column;
+        }
+        .sidebar {
+            width: 100%;
+            max-height: 300px;
+            order: 2;
+        }
+        .map-section {
+            order: 1;
+            min-height: 350px;
+        }
+        #doctors-map {
+            height: 350px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="hero-section text-center mb-3">
+        <h1><i class="fas fa-map-marker-alt"></i> Find Doctors Near You</h1>
+        <p class="text-muted">Interactive map to discover and book healthcare professionals in your area</p>
+    </div>
+    <div class="doctors-map-container">
+        <div class="sidebar">
+            <div class="filter-group">
+                <input type="text" id="search-input" class="form-control" placeholder="Search doctors, clinics, specializations...">
+            </div>
+            <div class="filter-group">
+                <select id="specialization-filter" class="form-control">
+                    <option value="">All Specializations</option>
+                    {% for spec in specializations %}
+                    <option value="{{ spec }}">{{ spec }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <select id="org-type-filter" class="form-control">
+                    <option value="">All Types</option>
+                    <option value="clinic">Clinics</option>
+                    <option value="hospital">Hospitals</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label><input type="checkbox" id="on-duty-filter"> On Duty Only</label>
+            </div>
+            <div class="filter-group">
+                <select id="rating-filter" class="form-control">
+                    <option value="">Any Rating</option>
+                    <option value="4.5">4.5+ Stars</option>
+                    <option value="4.0">4.0+ Stars</option>
+                    <option value="3.5">3.5+ Stars</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <select id="fee-filter" class="form-control">
+                    <option value="">Any Fee</option>
+                    <option value="50">Under $50</option>
+                    <option value="100">Under $100</option>
+                    <option value="200">Under $200</option>
+                </select>
+            </div>
+            <button class="btn btn-secondary w-100 mb-2" onclick="clearAllFilters()">Clear All Filters</button>
+            <hr>
+            <div id="doctor-list">
+                <!-- Doctor cards will be rendered here -->
+            </div>
+        </div>
+        <div class="map-section">
+            <div id="doctors-map"></div>
+        </div>
+    </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const apiUrl = '/api/doctors-map/';
+let map, markerCluster, doctorMarkers = [];
+let doctorData = [];
+
+function fetchDoctors() {
+    const params = new URLSearchParams({
+        search: document.getElementById('search-input').value,
+        specialization: document.getElementById('specialization-filter').value,
+        org_type: document.getElementById('org-type-filter').value,
+        on_duty: document.getElementById('on-duty-filter').checked,
+        min_rating: document.getElementById('rating-filter').value,
+        max_fee: document.getElementById('fee-filter').value
+    });
+    fetch(apiUrl + '?' + params.toString())
+        .then(res => res.json())
+        .then(data => {
+            doctorData = data.doctors;
+            renderDoctorList();
+            renderMapMarkers();
+        });
+}
+
+function renderDoctorList() {
+    const list = document.getElementById('doctor-list');
+    list.innerHTML = '';
+    if (doctorData.length === 0) {
+        list.innerHTML = '<div class="text-center text-muted">No doctors found.</div>';
+        return;
+    }
+    doctorData.forEach(doc => {
+        const card = document.createElement('div');
+        card.className = 'doctor-card';
+        card.onclick = () => focusDoctorOnMap(doc);
+        card.innerHTML = `
+            <div class="doctor-avatar">${doc.avatar_url ? `<img src="${doc.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '👨‍⚕️'}</div>
+            <div class="doctor-info">
+                <div class="doctor-name">${doc.name}</div>
+                <div class="doctor-specialization">${doc.specialization}</div>
+                <div class="doctor-org">${doc.organization}</div>
+                <div class="doctor-rating">${'★'.repeat(Math.floor(doc.rating))}${'☆'.repeat(5-Math.floor(doc.rating))} <span style="color:#888">${doc.rating}</span></div>
+                <span class="doctor-status ${doc.on_duty ? 'status-on-duty' : 'status-off-duty'}">${doc.on_duty ? 'On Duty' : 'Off Duty'}</span>
+                <div class="doctor-actions mt-2">
+                    <a href="/doctor/${doc.id}/map/" class="btn btn-sm btn-outline-primary">View</a>
+                    <a href="/schedule/?doctor=${doc.id}" class="btn btn-sm btn-success">Book</a>
+                </div>
+            </div>
+        `;
+        list.appendChild(card);
+    });
+}
+
+function renderMapMarkers() {
+    if (!map) return;
+    if (markerCluster) markerCluster.clearLayers();
+    doctorMarkers = [];
+    doctorData.forEach(doc => {
+        const marker = L.marker([doc.latitude, doc.longitude], {
+            title: doc.name,
+            icon: L.icon({
+                iconUrl: doc.on_duty ? 'https://maps.google.com/mapfiles/ms/icons/green-dot.png' : 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32],
+                popupAnchor: [0, -32]
+            })
+        });
+        marker.bindPopup(`
+            <div style='min-width:220px;'>
+                <div style='font-weight:600;font-size:1.1rem;'>${doc.name}</div>
+                <div style='color:#2563eb;'>${doc.specialization}</div>
+                <div style='color:#6c757d;'>${doc.organization}</div>
+                <div style='color:#ffc107;'>${'★'.repeat(Math.floor(doc.rating))}${'☆'.repeat(5-Math.floor(doc.rating))} <span style="color:#888">${doc.rating}</span></div>
+                <span class="doctor-status ${doc.on_duty ? 'status-on-duty' : 'status-off-duty'}">${doc.on_duty ? 'On Duty' : 'Off Duty'}</span>
+                <div class='mt-2'>
+                    <a href="/doctor/${doc.id}/map/" class="btn btn-sm btn-outline-primary">View</a>
+                    <a href="/schedule/?doctor=${doc.id}" class="btn btn-sm btn-success">Book</a>
+                </div>
+            </div>
+        `);
+        marker.on('click', () => {
+            map.setView([doc.latitude, doc.longitude], 15);
+        });
+        doctorMarkers.push(marker);
+    });
+    markerCluster = L.markerClusterGroup();
+    doctorMarkers.forEach(m => markerCluster.addLayer(m));
+    map.addLayer(markerCluster);
+}
+
+function focusDoctorOnMap(doc) {
+    if (!map) return;
+    map.setView([doc.latitude, doc.longitude], 15);
+    // Open popup for the marker
+    const marker = doctorMarkers.find(m => m.getLatLng().lat === doc.latitude && m.getLatLng().lng === doc.longitude);
+    if (marker) marker.openPopup();
+}
+
+function clearAllFilters() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('specialization-filter').value = '';
+    document.getElementById('org-type-filter').value = '';
+    document.getElementById('on-duty-filter').checked = false;
+    document.getElementById('rating-filter').value = '';
+    document.getElementById('fee-filter').value = '';
+    fetchDoctors();
+}
+
+function setupFilters() {
+    document.getElementById('search-input').addEventListener('input', debounce(fetchDoctors, 400));
+    document.getElementById('specialization-filter').addEventListener('change', fetchDoctors);
+    document.getElementById('org-type-filter').addEventListener('change', fetchDoctors);
+    document.getElementById('on-duty-filter').addEventListener('change', fetchDoctors);
+    document.getElementById('rating-filter').addEventListener('change', fetchDoctors);
+    document.getElementById('fee-filter').addEventListener('change', fetchDoctors);
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    map = L.map('doctors-map').setView([40.7128, -74.0060], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    markerCluster = L.markerClusterGroup();
+    map.addLayer(markerCluster);
+    setupFilters();
+    fetchDoctors();
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,47 @@
+{% extends 'appointments/base.html' %}
+{% block title %}Search Clinics & Doctors{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Find Clinics, Hospitals & Doctors</h2>
+    <form method="get" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="Search by clinic or hospital name..." value="{{ query }}">
+            <button class="btn btn-primary" type="submit">Search</button>
+        </div>
+    </form>
+    {% if orgs_with_doctors %}
+        {% for item in orgs_with_doctors %}
+            <div class="card mb-4">
+                <div class="card-header bg-light fw-bold">
+                    {{ item.org.name }} <span class="badge bg-secondary ms-2">{{ item.org.get_org_type_display }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2 text-muted">{{ item.org.address }}</div>
+                    <div class="mb-3">
+                        <a href="{% url 'appointments:clinic_details_map' item.org.id %}" class="btn btn-outline-info btn-sm">View Details</a>
+                    </div>
+                    {% if item.doctors %}
+                        <h6>On-Duty Doctors:</h6>
+                        <ul class="list-group mb-2">
+                            {% for doc in item.doctors %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center" data-doctor-id="{{ doc.user.id }}">
+                                    <span>
+                                        <strong>{{ doc.user.get_full_name }}</strong>
+                                        <span class="text-muted ms-2">{{ doc.specialization|default:'General' }}</span>
+                                        <span class="badge ms-2 doctor-on-duty-badge {% if doc.on_duty %}bg-success{% else %}bg-secondary{% endif %}">{% if doc.on_duty %}On Duty{% else %}Off Duty{% endif %}</span>
+                                    </span>
+                                    <a href="{% url 'appointments:schedule' %}?doctor={{ doc.user.id }}&organization={{ item.org.id }}" class="btn btn-outline-primary btn-sm">Book Appointment</a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-muted">No doctors currently on duty.</div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="text-muted">No clinics or hospitals found matching your search.</div>
+    {% endif %}
+</div>
+{% endblock %} 

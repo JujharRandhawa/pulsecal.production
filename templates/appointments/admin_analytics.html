@@ -1,0 +1,215 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+{% block title %}Admin Analytics - PulseCal{% endblock %}
+{% block content %}
+<style>
+    .admin-nav {
+        background: linear-gradient(90deg, #2563eb 60%, #3b82f6 100%);
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+        padding: 1rem 2rem;
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+        box-shadow: 0 2px 12px rgba(37,99,235,0.10);
+    }
+    .admin-nav a {
+        color: #fff;
+        font-weight: 500;
+        text-decoration: none;
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .admin-nav a.active, .admin-nav a:hover {
+        color: #fbbf24;
+        text-decoration: underline;
+    }
+    .admin-section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #2563eb;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .admin-card {
+        border-radius: 1.25rem;
+        box-shadow: 0 4px 24px rgba(80,120,200,0.10);
+        border: none;
+        margin-bottom: 2rem;
+    }
+    .admin-metric {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #ef4444;
+    }
+</style>
+<div class="container py-5">
+    <div class="admin-nav mb-4">
+        <a href="{% url 'appointments:admin_analytics' %}" class="{% if request.resolver_match.url_name == 'admin_analytics' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Analytics</a>
+        <a href="{% url 'appointments:export_appointments_enhanced' %}"><i class="fas fa-file-export"></i> Export Appointments</a>
+        <a href="{% url 'appointments:import_appointments_enhanced' %}"><i class="fas fa-file-import"></i> Import Appointments</a>
+        <a href="{% url 'appointments:import_patients_enhanced' %}"><i class="fas fa-user-plus"></i> Import Patients</a>
+        <a href="{% url 'appointments:export_users' %}"><i class="fas fa-users"></i> Export Users</a>
+        <a href="{% url 'appointments:manage_roles' %}"><i class="fas fa-user-shield"></i> Manage Roles</a>
+        <a href="{% url 'appointments:audit_logs' %}"><i class="fas fa-clipboard-list"></i> Audit Logs</a>
+    </div>
+    <h2 class="mb-4 fw-bold text-center"><i class="fas fa-chart-bar me-2"></i>Admin Analytics Dashboard</h2>
+
+    <!-- FILTERS -->
+    <form method="get" class="row g-3 mb-4 align-items-end bg-light p-3 rounded shadow-sm">
+        <div class="col-md-3">
+            <label for="organization" class="form-label">Organization</label>
+            <select class="form-select" id="organization" name="organization" onchange="this.form.submit()">
+                <option value="">All</option>
+                {% for org in org_options %}
+                    <option value="{{ org.id }}" {% if org.id == selected_org %}selected{% endif %}>{{ org.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="doctor" class="form-label">Doctor</label>
+            <select class="form-select" id="doctor" name="doctor" onchange="this.form.submit()">
+                <option value="">All</option>
+                {% for doc in doctor_options %}
+                    <option value="{{ doc.id }}" {% if doc.id == selected_doctor %}selected{% endif %}>Dr. {{ doc.get_full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="specialization" class="form-label">Department/Specialization</label>
+            <select class="form-select" id="specialization" name="specialization" onchange="this.form.submit()">
+                <option value="">All</option>
+                {% for spec in specialization_options %}
+                    <option value="{{ spec }}" {% if spec == selected_specialization %}selected{% endif %}>{{ spec }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="date_start" class="form-label">Date Range</label>
+            <div class="input-group">
+                <input type="date" class="form-control" id="date_start" name="date_start" value="{{ date_start }}" onchange="this.form.submit()">
+                <span class="input-group-text">to</span>
+                <input type="date" class="form-control" id="date_end" name="date_end" value="{{ date_end }}" onchange="this.form.submit()">
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card admin-card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="admin-section-title"><i class="fas fa-calendar-alt"></i> Appointments (Trend)</div>
+                    <canvas id="appointmentsChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card admin-card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="admin-section-title"><i class="fas fa-user-times"></i> No-show Rate</div>
+                    <div class="admin-metric">{{ no_show_rate|floatformat:1 }}%</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card admin-card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="admin-section-title"><i class="fas fa-clock"></i> Peak Booking Times (by Hour)</div>
+                    <canvas id="busiestTimesChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card admin-card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="admin-section-title"><i class="fas fa-users"></i> User Role Distribution</div>
+                    <canvas id="roleChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACTIVE DOCTORS PER ORGANIZATION -->
+    <div class="card admin-card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="admin-section-title"><i class="fas fa-user-md"></i> Active Doctors per Organization</div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Organization</th>
+                            <th>Active Doctors</th>
+                            <th>Total Doctors</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in active_doctors_per_org %}
+                        <tr>
+                            <td>{{ item.org.name }}</td>
+                            <td><span class="badge bg-success">{{ item.active }}</span></td>
+                            <td>{{ item.total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const dayLabels = {{ day_labels|safe }};
+    const apptCounts = {{ appt_counts|safe }};
+    const hourLabels = {{ hour_labels|safe }};
+    const hourCounts = {{ hour_counts|safe }};
+    const roleLabels = {{ role_labels|safe }};
+    const roleCounts = {{ role_counts|safe }};
+    // Appointments trend
+    new Chart(document.getElementById('appointmentsChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: dayLabels,
+            datasets: [{
+                label: 'Appointments',
+                data: apptCounts,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37,99,235,0.08)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 2
+            }]
+        },
+        options: {responsive: true, plugins: {legend: {display: false}}}
+    });
+    // Busiest times
+    new Chart(document.getElementById('busiestTimesChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: hourLabels,
+            datasets: [{
+                label: 'Appointments',
+                data: hourCounts,
+                backgroundColor: '#3b82f6',
+            }]
+        },
+        options: {responsive: true, plugins: {legend: {display: false}}}
+    });
+    // Role distribution
+    new Chart(document.getElementById('roleChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: roleLabels,
+            datasets: [{
+                data: roleCounts,
+                backgroundColor: ['#2563eb', '#10b981', '#f59e42'],
+            }]
+        },
+        options: {responsive: true, plugins: {legend: {position: 'bottom'}}}
+    });
+</script>
+{% endblock %} 

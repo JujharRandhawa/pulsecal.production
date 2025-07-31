@@ -1,0 +1,363 @@
+{% extends 'appointments/base.html' %}
+
+{% block title %}Directions to Appointment - PulseCal{% endblock %}
+
+{% block extra_head %}
+<style>
+    #map {
+        height: 500px;
+        width: 100%;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    .appointment-info {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    .clinic-details {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 4px solid #007bff;
+        margin-bottom: 20px;
+    }
+    .directions-panel {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .route-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        background: #e3f2fd;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+    .transport-mode {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .transport-btn {
+        padding: 8px 16px;
+        border: 2px solid #dee2e6;
+        border-radius: 20px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .transport-btn.active {
+        border-color: #007bff;
+        background: #007bff;
+        color: white;
+    }
+    .directions-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .direction-step {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        align-items: center;
+    }
+    .direction-step:last-child {
+        border-bottom: none;
+    }
+    .step-number {
+        background: #007bff;
+        color: white;
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        margin-right: 15px;
+    }
+    .step-instruction {
+        flex: 1;
+    }
+    .step-distance {
+        color: #666;
+        font-size: 0.9em;
+    }
+    .estimated-time {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #28a745;
+    }
+    .distance-info {
+        font-size: 1.1em;
+        color: #666;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-route me-2 text-primary"></i>Directions to Your Appointment
+            </h2>
+            
+            <!-- Appointment Information -->
+            <div class="appointment-info">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-calendar-check me-2"></i>Appointment Details</h5>
+                        <p><strong>Date:</strong> {{ appointment.appointment_date|date:"F d, Y" }}</p>
+                        <p><strong>Time:</strong> {{ appointment.appointment_date|time:"g:i A" }}</p>
+                        <p><strong>Doctor:</strong> {{ appointment.doctor.get_full_name }}</p>
+                        <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-hospital me-2"></i>Clinic Information</h5>
+                        <p><strong>Clinic:</strong> {{ clinic_data.name }}</p>
+                        <p><strong>Address:</strong> {{ clinic_data.address }}</p>
+                        {% if clinic_data.phone %}
+                        <p><strong>Phone:</strong> {{ clinic_data.phone }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div id="map"></div>
+
+            <!-- Directions Panel -->
+            <div class="directions-panel">
+                <h5 class="mb-3">
+                    <i class="fas fa-directions me-2"></i>Route Information
+                </h5>
+                
+                <!-- Transport Mode Selection -->
+                <div class="transport-mode">
+                    <button class="transport-btn active" data-mode="driving">
+                        <i class="fas fa-car me-1"></i>Driving
+                    </button>
+                    <button class="transport-btn" data-mode="walking">
+                        <i class="fas fa-walking me-1"></i>Walking
+                    </button>
+                    <button class="transport-btn" data-mode="transit">
+                        <i class="fas fa-bus me-1"></i>Transit
+                    </button>
+                    <button class="transport-btn" data-mode="bicycling">
+                        <i class="fas fa-bicycle me-1"></i>Bicycling
+                    </button>
+                </div>
+
+                <!-- Route Summary -->
+                <div id="routeSummary" class="route-info" style="display: none;">
+                    <div>
+                        <div class="estimated-time" id="estimatedTime"></div>
+                        <div class="distance-info" id="distanceInfo"></div>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm" onclick="getDirections()">
+                            <i class="fas fa-refresh me-1"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Directions List -->
+                <div id="directionsList" class="directions-list"></div>
+
+                <!-- Location Access -->
+                <div id="locationAccess" class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Click "Get My Location" to see directions from your current location.
+                    <button class="btn btn-primary btn-sm ms-3" onclick="getUserLocation()">
+                        <i class="fas fa-location-arrow me-1"></i>Get My Location
+                    </button>
+                </div>
+            </div>
+
+            <!-- Clinic Details Card -->
+            <div class="clinic-details">
+                <h5><i class="fas fa-info-circle me-2"></i>Clinic Details</h5>
+                <div class="row">
+                    <div class="col-md-8">
+                        <p><strong>Name:</strong> {{ clinic_data.name }}</p>
+                        <p><strong>Address:</strong> {{ clinic_data.address }}</p>
+                        {% if clinic_data.phone %}
+                        <p><strong>Phone:</strong> <a href="tel:{{ clinic_data.phone }}">{{ clinic_data.phone }}</a></p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <a href="{% url 'appointments:clinic_details_map' appointment.organization.id %}" 
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-map me-1"></i>View on Map
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let map;
+let directionsService;
+let directionsRenderer;
+let userLocation = null;
+let currentMode = 'driving';
+
+// Initialize Google Maps
+function initMap() {
+    const clinicLocation = {
+        lat: parseFloat('{{ clinic_data.latitude }}'),
+        lng: parseFloat('{{ clinic_data.longitude }}')
+    };
+    
+    map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 15,
+        center: clinicLocation,
+        mapTypeControl: true,
+        streetViewControl: true,
+        fullscreenControl: true
+    });
+    
+    // Initialize directions service
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer();
+    directionsRenderer.setMap(map);
+    
+    // Add clinic marker
+    new google.maps.Marker({
+        position: clinicLocation,
+        map: map,
+        title: '{{ clinic_data.name }}',
+        icon: {
+            url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
+        }
+    });
+}
+
+// Get user's current location
+function getUserLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                
+                // Add user location marker
+                new google.maps.Marker({
+                    position: userLocation,
+                    map: map,
+                    title: 'Your Location',
+                    icon: {
+                        url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                    }
+                });
+                
+                // Get directions
+                getDirections();
+                
+                // Hide location access message
+                document.getElementById('locationAccess').style.display = 'none';
+            },
+            function(error) {
+                console.error('Error getting location:', error);
+                alert('Unable to get your location. Please check your browser settings.');
+            }
+        );
+    } else {
+        alert('Geolocation is not supported by this browser.');
+    }
+}
+
+// Get directions
+function getDirections() {
+    if (!userLocation) {
+        alert('Please get your location first.');
+        return;
+    }
+    
+    const clinicLocation = {
+        lat: parseFloat('{{ clinic_data.latitude }}'),
+        lng: parseFloat('{{ clinic_data.longitude }}')
+    };
+    
+    const request = {
+        origin: userLocation,
+        destination: clinicLocation,
+        travelMode: google.maps.TravelMode[currentMode.toUpperCase()]
+    };
+    
+    directionsService.route(request, function(result, status) {
+        if (status === 'OK') {
+            directionsRenderer.setDirections(result);
+            
+            // Display route information
+            const route = result.routes[0].legs[0];
+            document.getElementById('estimatedTime').textContent = route.duration.text;
+            document.getElementById('distanceInfo').textContent = route.distance.text;
+            document.getElementById('routeSummary').style.display = 'flex';
+            
+            // Display step-by-step directions
+            displayDirections(route.steps);
+        } else {
+            alert('Directions request failed due to ' + status);
+        }
+    });
+}
+
+// Display step-by-step directions
+function displayDirections(steps) {
+    const directionsList = document.getElementById('directionsList');
+    directionsList.innerHTML = '';
+    
+    steps.forEach((step, index) => {
+        const stepDiv = document.createElement('div');
+        stepDiv.className = 'direction-step';
+        stepDiv.innerHTML = `
+            <div class="step-number">${index + 1}</div>
+            <div class="step-instruction">${step.instructions}</div>
+            <div class="step-distance">${step.distance.text}</div>
+        `;
+        directionsList.appendChild(stepDiv);
+    });
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Transport mode buttons
+    document.querySelectorAll('.transport-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Remove active class from all buttons
+            document.querySelectorAll('.transport-btn').forEach(b => b.classList.remove('active'));
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            currentMode = this.dataset.mode;
+            
+            // Get directions with new mode
+            if (userLocation) {
+                getDirections();
+            }
+        });
+    });
+    
+    // Initialize map
+    initMap();
+});
+</script>
+
+<!-- Google Maps API -->
+<script async defer
+    src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=geometry&callback=initMap">
+</script>
+
+{% endblock %} 

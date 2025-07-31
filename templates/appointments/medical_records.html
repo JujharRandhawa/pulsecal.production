@@ -1,0 +1,305 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+
+{% block title %}Medical Records - PulseCal{% endblock %}
+
+{% block extra_css %}
+<style>
+    .medical-record-card {
+        border-left: 4px solid #007bff;
+        transition: all 0.3s ease;
+    }
+    .medical-record-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .severity-high { border-left-color: #dc3545; }
+    .severity-medium { border-left-color: #ffc107; }
+    .severity-low { border-left-color: #28a745; }
+    .severity-critical { border-left-color: #6f42c1; }
+    
+    .record-type-badge {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-notes-medical"></i> Medical Records</h2>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRecordModal">
+                    <i class="fas fa-plus"></i> Add Record
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="record_type" class="form-label">Record Type</label>
+                            <select name="record_type" id="record_type" class="form-select">
+                                <option value="">All Types</option>
+                                <option value="allergy">Allergy</option>
+                                <option value="condition">Medical Condition</option>
+                                <option value="medication">Current Medication</option>
+                                <option value="surgery">Surgery</option>
+                                <option value="vaccination">Vaccination</option>
+                                <option value="lab_result">Lab Result</option>
+                                <option value="imaging">Imaging</option>
+                                <option value="note">Medical Note</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="severity" class="form-label">Severity</label>
+                            <select name="severity" id="severity" class="form-select">
+                                <option value="">All Severities</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date_from" class="form-label">From Date</label>
+                            <input type="date" name="date_from" id="date_from" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date_to" class="form-label">To Date</label>
+                            <input type="date" name="date_to" id="date_to" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-outline-primary">Filter</button>
+                            <a href="{% url 'appointments:medical_records' %}" class="btn btn-outline-secondary">Clear</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medical Records List -->
+    <div class="row">
+        {% if records %}
+            {% for record in records %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card medical-record-card severity-{{ record.severity }}">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="badge bg-primary record-type-badge">{{ record.get_record_type_display }}</span>
+                        <span class="badge bg-{{ record.severity }}">{{ record.get_severity_display }}</span>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ record.title }}</h5>
+                        <p class="card-text text-muted">{{ record.description|truncatewords:20 }}</p>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <small class="text-muted">Recorded</small><br>
+                                <strong>{{ record.date_recorded|date:"M d, Y" }}</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Status</small><br>
+                                <span class="badge bg-{{ record.is_active|yesno:'success,danger' }}">
+                                    {{ record.is_active|yesno:'Active,Inactive' }}
+                                </span>
+                            </div>
+                        </div>
+                        {% if record.doctor %}
+                        <div class="mt-2">
+                            <small class="text-muted">By: Dr. {{ record.doctor.get_full_name }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewRecordModal{{ record.id }}">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editRecordModal{{ record.id }}">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-notes-medical fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Medical Records Found</h4>
+                    <p class="text-muted">Start by adding your first medical record.</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRecordModal">
+                        <i class="fas fa-plus"></i> Add First Record
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Record Modal -->
+<div class="modal fade" id="addRecordModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Medical Record</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.record_type.id_for_label }}" class="form-label">Record Type</label>
+                                {{ form.record_type }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.severity.id_for_label }}" class="form-label">Severity</label>
+                                {{ form.severity }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.title.id_for_label }}" class="form-label">Title</label>
+                        {{ form.title }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                        {{ form.description }}
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.date_recorded.id_for_label }}" class="form-label">Date Recorded</label>
+                                {{ form.date_recorded }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.date_occurred.id_for_label }}" class="form-label">Date Occurred (Optional)</label>
+                                {{ form.date_occurred }}
+                            </div>
+                        </div>
+                    </div>
+                    {% if user.profile.role == 'doctor' %}
+                    <div class="mb-3">
+                        <label for="patient" class="form-label">Patient</label>
+                        <select name="patient" id="patient" class="form-select" required>
+                            <option value="">Select Patient</option>
+                            {% for patient in patients %}
+                            <option value="{{ patient.id }}">{{ patient.get_full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.is_active }}
+                            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                Active Record
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Record Modals -->
+{% for record in records %}
+<div class="modal fade" id="viewRecordModal{{ record.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ record.title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Record Type:</strong> {{ record.get_record_type_display }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Severity:</strong> 
+                        <span class="badge bg-{{ record.severity }}">{{ record.get_severity_display }}</span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Date Recorded:</strong> {{ record.date_recorded|date:"F d, Y" }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Status:</strong> 
+                        <span class="badge bg-{{ record.is_active|yesno:'success,danger' }}">
+                            {{ record.is_active|yesno:'Active,Inactive' }}
+                        </span>
+                    </div>
+                </div>
+                {% if record.date_occurred %}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Date Occurred:</strong> {{ record.date_occurred|date:"F d, Y" }}
+                    </div>
+                </div>
+                {% endif %}
+                {% if record.doctor %}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Recorded By:</strong> Dr. {{ record.doctor.get_full_name }}
+                    </div>
+                </div>
+                {% endif %}
+                <div class="mb-3">
+                    <strong>Description:</strong>
+                    <p class="mt-2">{{ record.description }}</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-populate date fields
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('id_date_recorded').value = today;
+        
+        // Filter functionality
+        const filterForm = document.querySelector('form[method="get"]');
+        const filterInputs = filterForm.querySelectorAll('select, input');
+        
+        filterInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        });
+    });
+</script>
+{% endblock %} 

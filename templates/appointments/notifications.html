@@ -1,0 +1,170 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/websocket.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-bell"></i> Notifications
+                        {% if unread_count > 0 %}
+                            <span class="badge badge-danger ml-2">{{ unread_count }}</span>
+                        {% endif %}
+                    </h3>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="markAllAsRead()">
+                        Mark All as Read
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if notifications %}
+                        <div class="notification-list">
+                            {% for notification in notifications %}
+                                <div class="notification-item p-3 border-bottom {% if not notification.is_read %}unread{% endif %}" 
+                                     data-notification-id="{{ notification.id }}">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1 {% if not notification.is_read %}font-weight-bold{% endif %}">
+                                                {{ notification.title }}
+                                            </h6>
+                                            <p class="mb-1 text-muted">{{ notification.message }}</p>
+                                            <small class="text-muted">
+                                                {{ notification.created_at|timesince }} ago
+                                            </small>
+                                        </div>
+                                        <div class="ml-3">
+                                            {% if not notification.is_read %}
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        onclick="markAsRead({{ notification.id }})">
+                                                    Mark as Read
+                                                </button>
+                                            {% else %}
+                                                <span class="badge badge-success">Read</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No notifications</h5>
+                            <p class="text-muted">You're all caught up!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification container for real-time notifications -->
+<div id="notification-container"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/websocket.js' %}"></script>
+<script>
+function markAsRead(notificationId) {
+    fetch(`/appointments/api/mark-notification-read/${notificationId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const notificationItem = document.querySelector(`[data-notification-id="${notificationId}"]`);
+            if (notificationItem) {
+                notificationItem.classList.remove('unread');
+                const button = notificationItem.querySelector('button');
+                if (button) {
+                    button.outerHTML = '<span class="badge badge-success">Read</span>';
+                }
+                updateNotificationCount();
+            }
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function markAllAsRead() {
+    const unreadNotifications = document.querySelectorAll('.notification-item.unread');
+    const promises = Array.from(unreadNotifications).map(item => {
+        const notificationId = item.getAttribute('data-notification-id');
+        return fetch(`/appointments/api/mark-notification-read/${notificationId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json',
+            },
+        });
+    });
+    
+    Promise.all(promises)
+    .then(() => {
+        unreadNotifications.forEach(item => {
+            item.classList.remove('unread');
+            const button = item.querySelector('button');
+            if (button) {
+                button.outerHTML = '<span class="badge badge-success">Read</span>';
+            }
+        });
+        updateNotificationCount();
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function updateNotificationCount() {
+    fetch('/appointments/api/unread-notifications-count/')
+    .then(response => response.json())
+    .then(data => {
+        const badge = document.querySelector('.badge-danger');
+        if (data.count > 0) {
+            if (badge) {
+                badge.textContent = data.count;
+            } else {
+                const newBadge = document.createElement('span');
+                newBadge.className = 'badge badge-danger ml-2';
+                newBadge.textContent = data.count;
+                document.querySelector('h3').appendChild(newBadge);
+            }
+        } else {
+            if (badge) {
+                badge.remove();
+            }
+        }
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Update notification count on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateNotificationCount();
+});
+</script>
+{% endblock %} 

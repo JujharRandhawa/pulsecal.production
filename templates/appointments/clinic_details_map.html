@@ -1,0 +1,28 @@
+{% extends 'appointments/base.html' %}
+{% block title %}{{ clinic.name }} - Details{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-3">{{ clinic.name }} <span class="badge bg-secondary ms-2">{{ clinic.get_org_type_display }}</span></h2>
+    <div class="mb-2 text-muted">{{ clinic.address }}</div>
+    <div class="mb-2">Contact: {{ clinic.phone|default:'N/A' }} | {{ clinic.email|default:'N/A' }}</div>
+    <div class="mb-4">{{ clinic.website|default:'' }}</div>
+    <h4 class="mb-3">Doctors at this {{ clinic.get_org_type_display|lower }}</h4>
+    {% if doctors %}
+        <ul class="list-group mb-4">
+            {% for doc in doctors %}
+                <li class="list-group-item d-flex justify-content-between align-items-center" data-doctor-id="{{ doc.user.id }}">
+                    <div>
+                        <strong>{{ doc.user.get_full_name }}</strong>
+                        <span class="text-muted ms-2">{{ doc.specialization|default:'General' }}</span>
+                        <span class="badge ms-2 doctor-on-duty-badge {% if doc.on_duty %}bg-success{% else %}bg-secondary{% endif %}">{% if doc.on_duty %}On Duty{% else %}Off Duty{% endif %}</span>
+                    </div>
+                    <a href="{% url 'appointments:schedule' %}?doctor={{ doc.user.id }}&organization={{ clinic.id }}" class="btn btn-outline-primary btn-sm">Book Appointment</a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="text-muted">No doctors are currently registered at this organization.</div>
+    {% endif %}
+    <a href="{% url 'appointments:search_clinics' %}" class="btn btn-link mt-3">&larr; Back to Search</a>
+</div>
+{% endblock %} 

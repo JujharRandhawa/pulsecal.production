@@ -1,0 +1,150 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+
+{% block title %}Cancel Appointment{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-times-circle me-2"></i>
+                        Cancel Appointment
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if appointment %}
+                        <div class="alert alert-warning">
+                            <h5 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Are you sure you want to cancel this appointment?
+                            </h5>
+                            <p class="mb-0">This action cannot be undone.</p>
+                        </div>
+
+                        <div class="appointment-details mb-4">
+                            <h6 class="text-muted mb-3">Appointment Details:</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Patient:</strong> {{ appointment.patient.get_full_name }}</p>
+                                    <p><strong>Doctor:</strong> Dr. {{ appointment.doctor.get_full_name }}</p>
+                                    <p><strong>Date & Time:</strong> {{ appointment.appointment_date|date:"F j, Y" }} at {{ appointment.appointment_date|time:"g:i A" }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Status:</strong> 
+                                        <span class="badge bg-{% if appointment.status == 'confirmed' %}success{% elif appointment.status == 'pending' %}warning{% else %}secondary{% endif %}">
+                                            {{ appointment.get_status_display }}
+                                        </span>
+                                    </p>
+                                    <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
+                                    {% if appointment.fee %}
+                                        <p><strong>Fee:</strong> ${{ appointment.fee }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="reason" class="form-label">
+                                    <i class="fas fa-comment me-2"></i>
+                                    Reason for Cancellation (Optional)
+                                </label>
+                                <textarea 
+                                    class="form-control" 
+                                    id="reason" 
+                                    name="reason" 
+                                    rows="3" 
+                                    placeholder="Please provide a reason for cancellation..."
+                                ></textarea>
+                                <div class="form-text">
+                                    Providing a reason helps us improve our services.
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'appointments:patient_dashboard' %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>
+                                    Go Back
+                                </a>
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-times me-2"></i>
+                                    Confirm Cancellation
+                                </button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-danger">
+                            <h5 class="alert-heading">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                Appointment Not Found
+                            </h5>
+                            <p class="mb-0">The appointment you're trying to cancel could not be found.</p>
+                        </div>
+                        <a href="{% url 'appointments:patient_dashboard' %}" class="btn btn-primary">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Back to Dashboard
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Cancellation Policy -->
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Cancellation Policy
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-clock text-warning me-2"></i>
+                            Appointments cannot be cancelled within 30 minutes of the scheduled time
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-bell text-info me-2"></i>
+                            The doctor will be notified of the cancellation
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-calendar-plus text-success me-2"></i>
+                            You can schedule a new appointment at any time
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.appointment-details {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    border-left: 4px solid #dc3545;
+}
+
+.badge {
+    font-size: 0.875em;
+}
+
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+}
+</style>
+{% endblock %} 

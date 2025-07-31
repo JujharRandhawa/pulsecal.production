@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Clinic Appointment System{% endblock %}
+
+{% block content %}
+<div class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-4 fw-bold mb-4">
+            <i class="fas fa-hospital-alt me-3"></i>
+            Welcome to PulseCal
+        </h1>
+        <p class="lead mb-4">A modern, secure appointment management system for clinics and healthcare providers.</p>
+        <div class="d-flex justify-content-center gap-3 mb-3">
+            <a href="{% url 'account_login' %}" class="btn btn-primary btn-lg px-4">
+                <i class="fas fa-sign-in-alt me-2"></i>Login
+            </a>
+            <a href="{% url 'account_signup' %}" class="btn btn-outline-primary btn-lg px-4">
+                <i class="fas fa-user-plus me-2"></i>Register
+            </a>
+        </div>
+        <p class="text-white-50">Please log in or register to access your dashboard and manage appointments.</p>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <!-- Features Display Section -->
+    <div class="row mb-5">
+        <div class="col-md-4 text-center">
+            <i class="fas fa-calendar-plus fa-3x text-primary mb-3"></i>
+            <h4 class="fw-bold">Appointment Scheduling</h4>
+            <p class="text-muted">Book appointments with ease, choose your doctor, and select the time that works for you.</p>
+        </div>
+        <div class="col-md-4 text-center">
+            <i class="fas fa-bell fa-3x text-success mb-3"></i>
+            <h4 class="fw-bold">Realtime Track & Notifications</h4>
+            <p class="text-muted">Track your appointments in real time and receive instant notifications for updates and reminders.</p>
+        </div>
+        <div class="col-md-4 text-center">
+            <i class="fas fa-shield-alt fa-3x text-info mb-3"></i>
+            <h4 class="fw-bold">Secure & Reliable</h4>
+            <p class="text-muted">Your data is protected with industry-standard security and our platform is always available when you need it.</p>
+        </div>
+    </div>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <i class="fas fa-calendar-check fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Easy Scheduling</h5>
+                    <p class="card-text">Patients can easily schedule appointments with their preferred doctors at convenient times.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <i class="fas fa-user-md fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Doctor Management</h5>
+                    <p class="card-text">Doctors can manage their appointments, accept or decline bookings, and track patient status.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <i class="fas fa-chart-line fa-3x text-warning mb-3"></i>
+                    <h5 class="card-title">Real-time Calendar</h5>
+                    <p class="card-text">Interactive calendar view showing all appointments with real-time status updates.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-users me-2"></i>For Patients</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Easy appointment booking</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>View appointment history</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Real-time status updates</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Calendar integration</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-md me-2"></i>For Doctors</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Manage appointments</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Accept/decline bookings</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Track patient status</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Calendar overview</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mt-5">
+        <h3>Ready to get started?</h3>
+        <p class="lead">Join thousands of healthcare providers and patients using our platform</p>
+        <a href="{% url 'appointments:register' %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-rocket me-2"></i>Get Started Now
+        </a>
+    </div>
+</div>
+{% endblock %} 

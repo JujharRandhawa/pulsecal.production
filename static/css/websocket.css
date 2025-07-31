@@ -1,0 +1,323 @@
+/* WebSocket and Real-time Features Styles */
+
+/* Notification Container */
+#notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 400px;
+}
+
+/* Notification Toast */
+.notification.toast {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    margin-bottom: 10px;
+    padding: 15px;
+    animation: slideIn 0.3s ease-out;
+    max-width: 400px;
+}
+
+.notification.toast.success {
+    border-left: 4px solid #28a745;
+}
+
+.notification.toast.warning {
+    border-left: 4px solid #ffc107;
+}
+
+.notification.toast.error {
+    border-left: 4px solid #dc3545;
+}
+
+.notification.toast.info {
+    border-left: 4px solid #17a2b8;
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.notification-header strong {
+    color: #333;
+    font-size: 14px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    color: #333;
+}
+
+.notification-body {
+    color: #666;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* Animation */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Notification Badge */
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* Chat Interface */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 500px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.chat-header {
+    background: #f8f9fa;
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+    border-radius: 8px 8px 0 0;
+}
+
+.chat-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 16px;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    background: #f9f9f9;
+}
+
+.chat-message {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chat-message.own-message {
+    background: #007bff;
+    color: white;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.message-header strong {
+    color: #333;
+    font-weight: 600;
+}
+
+.chat-message.own-message .message-header strong {
+    color: white;
+}
+
+.message-header small {
+    color: #666;
+    font-size: 11px;
+}
+
+.chat-message.own-message .message-header small {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.message-body {
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.chat-input {
+    padding: 15px;
+    border-top: 1px solid #ddd;
+    background: #fff;
+    border-radius: 0 0 8px 8px;
+}
+
+.chat-form {
+    display: flex;
+    gap: 10px;
+}
+
+.chat-form input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.chat-form button {
+    padding: 10px 20px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.chat-form button:hover {
+    background: #0056b3;
+}
+
+/* Real-time Status Updates */
+.appointment-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-confirmed {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-checkedin {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-completed {
+    background: #c3e6cb;
+    color: #155724;
+}
+
+.status-cancelled {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-declined {
+    background: #f5c6cb;
+    color: #721c24;
+}
+
+.patient-status {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-waiting {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-in_consultation {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-done {
+    background: #d4edda;
+    color: #155724;
+}
+
+/* WebSocket Connection Status */
+.websocket-status {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 1000;
+}
+
+.websocket-status.connected {
+    background: #d4edda;
+    color: #155724;
+}
+
+.websocket-status.disconnected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.websocket-status.connecting {
+    background: #fff3cd;
+    color: #856404;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    #notification-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .notification.toast {
+        max-width: none;
+    }
+    
+    .chat-container {
+        height: 400px;
+    }
+    
+    .websocket-status {
+        bottom: 10px;
+        right: 10px;
+    }
+} 

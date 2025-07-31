@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PulseCal Healthcare{% endblock %}</title>
+    
+    <!-- Meta tags for WebSocket functionality -->
+    {% if user.is_authenticated %}
+        <meta name="user-id" content="{{ user.id }}">
+        <meta name="username" content="{{ user.get_full_name|default:user.username }}">
+        {% if user.profile.organization %}
+            <meta name="organization-id" content="{{ user.profile.organization.id }}">
+        {% endif %}
+    {% endif %}
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/websocket.css' %}">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+            --accent-color: #22c55e;
+            --accent-dark: #16a34a;
+            --neutral-bg: #f8fafc;
+            --secondary-bg: #e2e8f0;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --cta-color: #f97316;
+            --cta-dark: #ea580c;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--neutral-bg);
+            color: var(--text-color);
+            min-height: 100vh;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Enhanced Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            padding: 0.75rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--primary-color) !important;
+            font-size: 1.5rem;
+            letter-spacing: -0.025em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .navbar-brand i {
+            font-size: 1.75rem;
+            color: var(--primary-color);
+        }
+        
+        .nav-link {
+            color: var(--text-color) !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary-color) !important;
+            background: rgba(37, 99, 235, 0.05);
+            transform: translateY(-1px);
+        }
+        
+        .nav-link .icon {
+            font-size: 1.1rem;
+            margin-right: 0.5rem;
+        }
+        
+        /* Enhanced Dropdown */
+        .dropdown-menu {
+            border: none;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+        }
+        
+        .dropdown-item {
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            color: var(--text-color);
+        }
+        
+        .dropdown-item:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateX(4px);
+        }
+        
+        .dropdown-item i {
+            width: 1.25rem;
+            text-align: center;
+        }
+        
+        /* Main Container */
+        .main-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            margin: 1.5rem auto;
+            padding: 2rem;
+            max-width: 1200px;
+            min-height: calc(100vh - 120px);
+            border: 1px solid var(--border-color);
+        }
+        
+        /* Enhanced Cards */
+        .card {
+            border: none;
+            border-radius: 16px;
+            background: white;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 1.25rem 1.5rem;
+            font-weight: 600;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        /* Enhanced Buttons */
+        .btn {
+            border-radius: 10px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, var(--accent-dark) 100%);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-color) 0%, var(--cta-dark) 100%);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger-color) 0%, #dc2626 100%);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-outline-primary {
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            background: transparent;
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        /* Enhanced Forms */
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid var(--border-color);
+            padding: 0.875rem 1rem;
+            color: var(--text-color);
+            background: white;
+            box-shadow: none;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Enhanced Status Badges */
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+        
+        .status-pending { 
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+        }
+        
+        .status-accepted { 
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+        }
+        
+        .status-declined { 
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+        }
+        
+        .status-completed { 
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            color: #3730a3;
+        }
+        
+        /* Patient Status Badges */
+        .patient-waiting { 
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+        }
+        
+        .patient-in-consultation { 
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+        }
+        
+        .patient-done { 
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            color: #3730a3;
+        }
+        
+        .patient-in-queue {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+        }
+        
+        .patient-checked-in {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+        }
+        
+        .patient-no-show {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+        }
+        
+        /* Enhanced Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 3rem 0 2rem 0;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="white" opacity="0.3"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
+            pointer-events: none;
+        }
+        
+        .hero-section .container {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Enhanced Alerts */
+        .alert {
+            border-radius: 12px;
+            border: none;
+            padding: 1rem 1.25rem;
+            font-weight: 500;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .alert-info {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e40af;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .alert-success {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+            border-left: 4px solid var(--success-color);
+        }
+        
+        .alert-warning {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+            border-left: 4px solid var(--warning-color);
+        }
+        
+        .alert-danger {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+            border-left: 4px solid var(--danger-color);
+        }
+        
+        /* Enhanced Tables */
+        .table {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .table thead th {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            font-weight: 600;
+            padding: 1rem;
+        }
+        
+        .table tbody tr {
+            transition: all 0.2s ease;
+        }
+        
+        .table tbody tr:hover {
+            background: rgba(37, 99, 235, 0.05);
+            transform: scale(1.01);
+        }
+        
+        .table tbody td {
+            padding: 1rem;
+            border-color: var(--border-color);
+            vertical-align: middle;
+        }
+        
+        /* Enhanced Modals */
+        .modal-content {
+            border: none;
+            border-radius: 16px;
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 16px 16px 0 0;
+        }
+        
+        .modal-body {
+            padding: 2rem;
+        }
+        
+        /* Enhanced Utilities */
+        .text-muted {
+            color: var(--text-muted) !important;
+        }
+        
+        .shadow-custom {
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .border-custom {
+            border: 1px solid var(--border-color);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 0.5rem;
+                padding: 1rem;
+                border-radius: 12px;
+            }
+            
+            .hero-section {
+                padding: 2rem 0 1.5rem 0;
+                border-radius: 12px;
+                margin-bottom: 1rem;
+            }
+            
+            .navbar {
+                padding: 0.5rem 0;
+            }
+            
+            .btn {
+                padding: 0.875rem 1.25rem;
+                font-size: 1rem;
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+            
+            .form-control {
+                padding: 1rem;
+                font-size: 1rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+            
+            .table-responsive {
+                border-radius: 12px;
+                overflow: hidden;
+            }
+        }
+        
+        /* Animation Classes */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+        
+        /* Loading States */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'appointments:home' %}">
+                <i class="fas fa-heartbeat"></i>
+                PulseCal
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'appointments:home' %}" title="Home">
+                            <i class="fas fa-home icon"></i><span class="d-none d-md-inline ms-1">Home</span>
+                        </a>
+                    </li>
+                    
+                    <!-- Find Doctors Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="findDoctorsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Find Doctors">
+                            <i class="fas fa-search icon"></i><span class="d-none d-md-inline ms-1">Find Doctors</span>
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="findDoctorsDropdown">
+                            <li><a class="dropdown-item" href="{% url 'appointments:browse_doctors' %}"><i class="fas fa-user-md me-2"></i>Browse Doctors & Clinics</a></li>
+                            <li><a class="dropdown-item" href="{% url 'appointments:doctors_map' %}"><i class="fas fa-map-marker-alt me-2"></i>Doctors Map</a></li>
+                            <li><a class="dropdown-item" href="{% url 'appointments:nearby_clinics' %}"><i class="fas fa-location-arrow me-2"></i>Nearby Clinics</a></li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Calendar -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'appointments:calendar' %}" title="Calendar">
+                            <i class="fas fa-calendar-alt icon"></i><span class="d-none d-md-inline ms-1">Calendar</span>
+                        </a>
+                    </li>
+                    
+                    {% if user.is_authenticated %}
+                        <!-- Health Features Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="healthFeaturesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Health Features">
+                                <i class="fas fa-heartbeat icon"></i><span class="d-none d-md-inline ms-1">Health</span>
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="healthFeaturesDropdown">
+                                <li><a class="dropdown-item" href="{% url 'appointments:medical_records' %}"><i class="fas fa-notes-medical me-2"></i>Medical Records</a></li>
+                                <li><a class="dropdown-item" href="{% url 'appointments:prescriptions' %}"><i class="fas fa-pills me-2"></i>Prescriptions</a></li>
+                                <li><a class="dropdown-item" href="{% url 'appointments:insurance' %}"><i class="fas fa-shield-alt me-2"></i>Insurance</a></li>
+                                <li><a class="dropdown-item" href="{% url 'appointments:emergency_contacts' %}"><i class="fas fa-phone-alt me-2"></i>Emergency Contacts</a></li>
+                                <li><a class="dropdown-item" href="{% url 'appointments:medication_reminders' %}"><i class="fas fa-clock me-2"></i>Medication Reminders</a></li>
+                                <li><a class="dropdown-item" href="{% url 'appointments:health_analytics' %}"><i class="fas fa-chart-line me-2"></i>Health Analytics</a></li>
+                            </ul>
+                        </li>
+                        
+                        <!-- Services Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="servicesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Services">
+                                <i class="fas fa-cogs icon"></i><span class="d-none d-md-inline ms-1">Services</span>
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="servicesDropdown">
+                                <li><a class="dropdown-item" href="{% url 'appointments:payments' %}"><i class="fas fa-credit-card me-2"></i>Payments</a></li>
+                                <li><a class="dropdown-item" href="{% url 'appointments:telemedicine_sessions' %}"><i class="fas fa-video me-2"></i>Telemedicine</a></li>
+                            </ul>
+                        </li>
+                    {% endif %}
+                </ul>
+                
+                <!-- Right Side Navigation -->
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <!-- Dashboards Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle px-2" href="#" id="dashDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Dashboards">
+                            <i class="fas fa-th-large icon"></i><span class="d-none d-md-inline ms-1">Dashboards</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{% url 'appointments:reception_dashboard' %}"><i class="fas fa-user-tie me-2 icon"></i>Reception Dashboard</a></li>
+                            <li><a class="dropdown-item" href="{% url 'appointments:dashboard' %}"><i class="fas fa-user-md me-2 icon"></i>Doctor Dashboard</a></li>
+                            <li><a class="dropdown-item" href="{% url 'appointments:patient_dashboard' %}"><i class="fas fa-user me-2 icon"></i>Patient Dashboard</a></li>
+                        </ul>
+                    </li>
+                    
+                    {% if user.is_authenticated %}
+                        <!-- Notifications -->
+                        <li class="nav-item">
+                            <a class="nav-link px-2 position-relative" href="{% url 'appointments:notifications' %}" title="Notifications">
+                                <i class="fas fa-bell icon"></i>
+                                <span class="d-none d-md-inline ms-1">Notifications</span>
+                                {% if unread_notifications and unread_notifications > 0 %}
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                        {{ unread_notifications }}
+                                    </span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        
+                        <!-- Chat -->
+                        <li class="nav-item">
+                            <a class="nav-link px-2" href="{% url 'appointments:chat_rooms' %}" title="Chat">
+                                <i class="fas fa-comments icon"></i>
+                                <span class="d-none d-md-inline ms-1">Chat</span>
+                            </a>
+                        </li>
+                        
+                        <!-- User Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle px-2" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle icon"></i><span class="d-none d-md-inline ms-1">{{ user.get_full_name|default:user.username }}</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'appointments:calendar' %}"><i class="fas fa-calendar-alt me-2 icon"></i>Calendar</a></li>
+                                <li><a class="dropdown-item" href="{% url 'appointments:notifications' %}"><i class="fas fa-bell me-2 icon"></i>Notifications</a></li>
+                                <li><a class="dropdown-item" href="{% url 'appointments:chat_rooms' %}"><i class="fas fa-comments me-2 icon"></i>Chat</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2 icon"></i>Logout</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <!-- Login/Register for non-authenticated users -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}">
+                                <i class="fas fa-sign-in-alt me-1"></i>Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'account_signup' %}">
+                                <i class="fas fa-user-plus me-1"></i>Register
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid px-0">
+        {% if messages %}
+            <div class="container mt-3">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="main-container fade-in">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Enhanced JavaScript -->
+    <script>
+        // Add loading states to buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            const buttons = document.querySelectorAll('.btn');
+            
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    if (!this.classList.contains('disabled')) {
+                        this.classList.add('loading');
+                        const originalText = this.innerHTML;
+                        this.innerHTML = '<span class="spinner me-2"></span>Loading...';
+                        
+                        // Reset after 2 seconds if no page navigation
+                        setTimeout(() => {
+                            this.classList.remove('loading');
+                            this.innerHTML = originalText;
+                        }, 2000);
+                    }
+                });
+            });
+            
+            // Add hover effects to cards
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-4px)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+            
+            // Auto-dismiss alerts after 5 seconds
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.classList.remove('show');
+                        setTimeout(() => alert.remove(), 150);
+                    }
+                }, 5000);
+            });
+        });
+    </script>
+</body>
+</html> 

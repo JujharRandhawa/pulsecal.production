@@ -1,0 +1,403 @@
+{% extends 'appointments/base.html' %}
+
+{% block title %}Manage Appointments - Clinic Appointment System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">
+            <i class="fas fa-user-md me-2 icon icon-animated"></i>Manage Appointments
+        </h2>
+        <p class="text-muted mb-0">Manage your patient appointments and update their status</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'appointments:calendar' %}" class="btn btn-outline-primary">
+            <i class="fas fa-calendar me-2 icon"></i>View Calendar
+        </a>
+        {% if user.profile.role in 'doctor,receptionist,admin' %}
+            <a href="{% url 'appointments:export_appointments_enhanced' %}" class="btn btn-outline-success">
+                <i class="fas fa-file-export me-2 icon"></i>Export
+            </a>
+            {% if user.profile.role in 'receptionist,admin' %}
+                <a href="{% url 'appointments:import_appointments_enhanced' %}" class="btn btn-outline-info">
+                    <i class="fas fa-file-import me-2 icon"></i>Import
+                </a>
+            {% endif %}
+        {% endif %}
+        {% if user.is_authenticated and user.profile.role == 'patient' %}
+            <a href="{% url 'appointments:patient_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2 icon"></i>Back to Dashboard
+            </a>
+        {% elif user.is_authenticated and user.profile.role == 'doctor' %}
+            <a href="{% url 'appointments:dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2 icon"></i>Back to Dashboard
+            </a>
+        {% elif user.is_authenticated and user.profile.role == 'receptionist' %}
+            <a href="{% url 'appointments:reception_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2 icon"></i>Back to Dashboard
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Status Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center border-warning">
+            <div class="card-body">
+                <div class="mb-2">
+                    <i class="fas fa-clock fa-2x text-warning icon icon-animated"></i>
+                </div>
+                <h5 class="card-title">{{ pending_count|default:0 }}</h5>
+                <p class="card-text text-muted">Pending Approval</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-center border-success">
+            <div class="card-body">
+                <div class="mb-2">
+                    <i class="fas fa-check-circle fa-2x text-success icon icon-animated"></i>
+                </div>
+                <h5 class="card-title">{{ accepted_count|default:0 }}</h5>
+                <p class="card-text text-muted">Accepted</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-center border-info">
+            <div class="card-body">
+                <div class="mb-2">
+                    <i class="fas fa-users fa-2x text-info icon icon-animated"></i>
+                </div>
+                <h5 class="card-title">{{ waiting_count|default:0 }}</h5>
+                <p class="card-text text-muted">Patients Waiting</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-center border-primary">
+            <div class="card-body">
+                <div class="mb-2">
+                    <i class="fas fa-stethoscope fa-2x text-primary icon icon-animated"></i>
+                </div>
+                <h5 class="card-title">{{ in_consultation_count|default:0 }}</h5>
+                <p class="card-text text-muted">In Consultation</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form class="row g-2 align-items-center" id="filterForm" autocomplete="off">
+            <div class="col-md-4">
+                <label for="filter-date" class="form-label visually-hidden">Date</label>
+                <input type="date" class="form-control" id="filter-date" name="date" aria-label="Filter by date" value="{{ filter_date|default:'' }}">
+            </div>
+            <div class="col-md-4">
+                <label for="filter-status" class="form-label visually-hidden">Status</label>
+                <select class="form-select" id="filter-status" name="status" aria-label="Filter by status">
+                    <option value="" {% if not filter_status %}selected{% endif %}>All Statuses</option>
+                    <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="accepted" {% if filter_status == 'accepted' %}selected{% endif %}>Accepted</option>
+                    <option value="declined" {% if filter_status == 'declined' %}selected{% endif %}>Declined</option>
+                    <option value="completed" {% if filter_status == 'completed' %}selected{% endif %}>Completed</option>
+                </select>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <button type="submit" class="btn btn-outline-primary px-4" aria-label="Apply filters">Apply Filters</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Appointments Management -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-list me-2 icon"></i>Patient Appointments</h5>
+    </div>
+    <div class="card-body" id="appointments-list">
+        <div id="appointments-loading" class="text-center py-5" style="display:none;">
+            <div class="spinner-border text-primary mb-3" role="status" aria-label="Loading appointments..."></div>
+            <div class="text-muted">Loading appointments...</div>
+        </div>
+        <div id="appointments-skeleton" style="display:none;">
+            {% for _ in "1234" %}
+            <div class="skeleton-row mb-3 p-3 rounded bg-light">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="skeleton-box" style="width: 80px; height: 18px;"></div>
+                    <div class="skeleton-box" style="width: 120px; height: 18px;"></div>
+                    <div class="skeleton-box" style="width: 60px; height: 18px;"></div>
+                    <div class="skeleton-box" style="width: 100px; height: 18px;"></div>
+                    <div class="skeleton-box" style="width: 80px; height: 18px;"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div id="appointments-table">
+            {% if appointments %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Patient</th>
+                            <th>Contact</th>
+                            <th>Appointment Status</th>
+                            <th>Patient Status</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appointment in appointments %}
+                        <tr>
+                            <td>
+                                <strong>{{ appointment.appointment_date|date:"F d, Y" }}</strong><br>
+<small class="text-muted">{{ appointment.appointment_date|date:"g:i A" }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ appointment.patient.get_full_name }}</strong><br>
+                                <small class="text-muted">ID: {{ appointment.patient.id }}</small>
+                            </td>
+                            <td>
+                                <div>
+                                    <small><i class="fas fa-envelope me-1 icon"></i>{{ appointment.patient.email }}</small>
+                                </div>
+                                {% if appointment.patient.profile.phone %}
+                                <div>
+                                    <small><i class="fas fa-phone me-1 icon"></i>{{ appointment.patient.profile.phone }}</small>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ appointment.status }}">
+                                    {{ appointment.status|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge patient-{{ appointment.patient_status|cut:"_" }}">
+                                    {{ appointment.patient_status|cut:"_"|title }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if appointment.notes %}
+                                    <small>{{ appointment.notes|slice:":50" }}{% if appointment.notes|length > 50 %}...{% endif %}</small>
+                                {% else %}
+                                    <small class="text-muted">No notes</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    {% if appointment.status == 'pending' %}
+                                        <button class="btn btn-success" onclick="updateStatus('{{ appointment.id }}', 'accepted')" title="Accept">
+                                            <i class="fas fa-check icon"></i>
+                                        </button>
+                                        <button class="btn btn-danger" onclick="updateStatus('{{ appointment.id }}', 'declined')" title="Decline">
+                                            <i class="fas fa-times icon"></i>
+                                        </button>
+                                    {% endif %}
+                                    
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" title="Update Patient Status">
+                                            <i class="fas fa-user icon"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <a class="dropdown-item" href="#" onclick="updatePatientStatus('{{ appointment.id }}', 'waiting')">
+                                                    <i class="fas fa-clock me-2 icon"></i>Waiting
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="#" onclick="updatePatientStatus('{{ appointment.id }}', 'in_consultation')">
+                                                    <i class="fas fa-stethoscope me-2 icon"></i>In Consultation
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="#" onclick="updatePatientStatus('{{ appointment.id }}', 'done')">
+                                                    <i class="fas fa-check-double me-2 icon"></i>Done
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    
+                                    {% if appointment.status == 'accepted' %}
+                                        <button class="btn btn-outline-success" onclick="updateStatus('{{ appointment.id }}', 'completed')" title="Mark as Completed">
+                                            <i class="fas fa-flag-checkered icon"></i>
+                                        </button>
+                                    {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-calendar-times fa-3x text-muted mb-3 icon icon-animated"></i>
+                <h5 class="text-muted">No appointments found</h5>
+                <p class="text-muted">No patient appointments have been scheduled yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-lightning-bolt me-2 icon"></i>Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="bulk_action" value="accept_all_pending">
+                        <button type="submit" class="btn btn-outline-primary" aria-label="Accept all pending appointments">
+                            <i class="fas fa-check-double me-2 icon"></i>Accept All Pending
+                        </button>
+                    </form>
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="bulk_action" value="mark_all_waiting">
+                        <button type="submit" class="btn btn-outline-warning" aria-label="Mark all as in consultation">
+                            <i class="fas fa-clock me-2 icon"></i>Mark All as In Consultation
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-bar me-2 icon"></i>Today's Summary</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <h5 class="text-primary">{{ accepted_count|default:0 }}</h5>
+                        <small class="text-muted">Accepted</small>
+                    </div>
+                    <div class="col-4">
+                        <h5 class="text-warning">{{ waiting_count|default:0 }}</h5>
+                        <small class="text-muted">Waiting</small>
+                    </div>
+                    <div class="col-4">
+                        <h5 class="text-success">{{ done_count|default:0 }}</h5>
+                        <small class="text-muted">Completed</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show mt-3" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Get CSRF token from cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrfToken = getCookie('csrftoken');
+
+// Use Django's URL pattern for update-status
+function getUpdateStatusUrl(appointmentId) {
+    // This must match your Django URL pattern name and structure
+    // Example: /update-status/123/
+    return `/update-status/${appointmentId}/`;
+}
+
+function updateStatus(appointmentId, status) {
+    if (confirm('Are you sure you want to update this appointment status?')) {
+        fetch(getUpdateStatusUrl(appointmentId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken,
+            },
+            body: `status=${status}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error updating status');
+            }
+        })
+        .catch(() => alert('Network error. Please try again.'));
+    }
+}
+
+function updatePatientStatus(appointmentId, patientStatus) {
+    fetch(getUpdateStatusUrl(appointmentId), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken,
+        },
+        body: `patient_status=${patientStatus}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error updating patient status');
+        }
+    })
+    .catch(() => alert('Network error. Please try again.'));
+}
+
+// Simulate loading spinner and skeletons on filter submit
+const filterForm = document.getElementById('filterForm');
+const appointmentsList = document.getElementById('appointments-list');
+const appointmentsLoading = document.getElementById('appointments-loading');
+const appointmentsSkeleton = document.getElementById('appointments-skeleton');
+const appointmentsTable = document.getElementById('appointments-table');
+if (filterForm) {
+    filterForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        appointmentsTable.style.display = 'none';
+        appointmentsLoading.style.display = 'block';
+        setTimeout(() => {
+            appointmentsLoading.style.display = 'none';
+            appointmentsSkeleton.style.display = 'block';
+            setTimeout(() => {
+                appointmentsSkeleton.style.display = 'none';
+                appointmentsTable.style.display = 'block';
+            }, 900);
+        }, 700);
+    });
+}
+</script>
+{% endblock %} 

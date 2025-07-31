@@ -1,0 +1,349 @@
+{% extends 'appointments/base.html' %}
+
+{% block title %}Nearby Clinics - PulseCal{% endblock %}
+
+{% block extra_head %}
+<style>
+    #map {
+        height: 400px;
+        width: 100%;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    .clinic-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    .clinic-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    .distance-badge {
+        background: #28a745;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        font-weight: bold;
+    }
+    .clinic-type {
+        background: #007bff;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-size: 0.7em;
+    }
+    .location-form {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    .clinic-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .clinic-details {
+        flex: 1;
+    }
+    .clinic-actions {
+        display: flex;
+        gap: 10px;
+    }
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+    }
+    .no-location {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-map-marker-alt me-2 text-primary"></i>Find Nearby Clinics
+            </h2>
+            
+            <!-- Location Form -->
+            <div class="location-form">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="radius" class="form-label">Search Radius (km)</label>
+                        <select id="radius" class="form-select">
+                            <option value="5">5 km</option>
+                            <option value="10" selected>10 km</option>
+                            <option value="20">20 km</option>
+                            <option value="50">50 km</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Your Location</label>
+                        <button id="getLocation" class="btn btn-primary w-100">
+                            <i class="fas fa-location-arrow me-2"></i>Use My Location
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Manual Location</label>
+                        <input type="text" id="manualLocation" class="form-control" placeholder="Enter address or city">
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <button id="searchClinics" class="btn btn-success">
+                            <i class="fas fa-search me-2"></i>Search Clinics
+                        </button>
+                        <button id="clearResults" class="btn btn-outline-secondary ms-2">
+                            <i class="fas fa-times me-2"></i>Clear Results
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div id="map"></div>
+
+            <!-- Results Container -->
+            <div id="resultsContainer">
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Finding nearby clinics...</p>
+                </div>
+
+                <div id="noLocation" class="no-location" style="display: none;">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Please allow location access or enter a location to find nearby clinics.
+                </div>
+
+                <div id="clinicsList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let map;
+let markers = [];
+let userLocation = null;
+
+// Initialize Google Maps
+function initMap() {
+    // Default center (can be set to a common location)
+    const defaultCenter = { lat: 40.7128, lng: -74.0060 }; // New York
+    
+    map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 12,
+        center: defaultCenter,
+        mapTypeControl: true,
+        streetViewControl: true,
+        fullscreenControl: true
+    });
+}
+
+// Get user's current location
+function getUserLocation() {
+    if (navigator.geolocation) {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('clinicsList').innerHTML = '';
+        
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                
+                // Update map center
+                map.setCenter(userLocation);
+                map.setZoom(13);
+                
+                // Add user location marker
+                new google.maps.Marker({
+                    position: userLocation,
+                    map: map,
+                    title: 'Your Location',
+                    icon: {
+                        url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                    }
+                });
+                
+                // Search for nearby clinics
+                searchNearbyClinics();
+            },
+            function(error) {
+                console.error('Error getting location:', error);
+                document.getElementById('noLocation').style.display = 'block';
+                document.getElementById('loading').style.display = 'none';
+            }
+        );
+    } else {
+        alert('Geolocation is not supported by this browser.');
+    }
+}
+
+// Search for nearby clinics
+function searchNearbyClinics() {
+    if (!userLocation) {
+        alert('Please get your location first.');
+        return;
+    }
+    
+    const radius = document.getElementById('radius').value;
+    
+    fetch('{% url "appointments:nearby_clinics" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: `latitude=${userLocation.lat}&longitude=${userLocation.lng}&radius=${radius}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        displayClinics(data.clinics);
+        document.getElementById('loading').style.display = 'none';
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('loading').style.display = 'none';
+    });
+}
+
+// Display clinics on map and list
+function displayClinics(clinics) {
+    // Clear existing markers
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
+    
+    const clinicsList = document.getElementById('clinicsList');
+    clinicsList.innerHTML = '';
+    
+    if (clinics.length === 0) {
+        clinicsList.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                No clinics found within the specified radius. Try increasing the search radius.
+            </div>
+        `;
+        return;
+    }
+    
+    // Create clinic cards
+    clinics.forEach((clinic, index) => {
+        const clinicCard = createClinicCard(clinic);
+        clinicsList.appendChild(clinicCard);
+        
+        // Add marker to map
+        const marker = new google.maps.Marker({
+            position: { lat: parseFloat(clinic.latitude), lng: parseFloat(clinic.longitude) },
+            map: map,
+            title: clinic.name,
+            label: (index + 1).toString()
+        });
+        
+        // Add info window
+        const infoWindow = new google.maps.InfoWindow({
+            content: `
+                <div style="padding: 10px;">
+                    <h6 style="margin: 0 0 5px 0; color: #007bff;">${clinic.name}</h6>
+                    <p style="margin: 0 0 5px 0; font-size: 12px;">${clinic.address}</p>
+                    <p style="margin: 0; font-size: 12px; color: #666;">
+                        <strong>${clinic.distance} km away</strong><br>
+                        ${clinic.doctors_count} doctors available
+                    </p>
+                </div>
+            `
+        });
+        
+        marker.addListener('click', () => {
+            infoWindow.open(map, marker);
+        });
+        
+        markers.push(marker);
+    });
+    
+    // Fit map to show all markers
+    if (markers.length > 0) {
+        const bounds = new google.maps.LatLngBounds();
+        markers.forEach(marker => bounds.extend(marker.getPosition()));
+        map.fitBounds(bounds);
+    }
+}
+
+// Create clinic card
+function createClinicCard(clinic) {
+    const card = document.createElement('div');
+    card.className = 'clinic-card';
+    card.innerHTML = `
+        <div class="clinic-info">
+            <div class="clinic-details">
+                <h5 class="mb-1">${clinic.name}</h5>
+                <p class="text-muted mb-2">
+                    <i class="fas fa-map-marker-alt me-1"></i>${clinic.address}
+                </p>
+                <div class="mb-2">
+                    <span class="distance-badge me-2">
+                        <i class="fas fa-route me-1"></i>${clinic.distance} km
+                    </span>
+                    <span class="clinic-type">${clinic.org_type}</span>
+                    ${clinic.is_24_hours ? '<span class="badge bg-success ms-2">24/7</span>' : ''}
+                </div>
+                <p class="mb-0">
+                    <i class="fas fa-user-md me-1"></i>${clinic.doctors_count} doctors available
+                </p>
+            </div>
+            <div class="clinic-actions">
+                <a href="{% url 'appointments:clinic_details_map' 0 %}" 
+                   class="btn btn-outline-primary btn-sm"
+                   onclick="this.href = this.href.replace('0', '${clinic.id}')">
+                    <i class="fas fa-info-circle me-1"></i>Details
+                </a>
+                <a href="{% url 'appointments:schedule' %}" 
+                   class="btn btn-success btn-sm">
+                    <i class="fas fa-calendar-plus me-1"></i>Book
+                </a>
+            </div>
+        </div>
+    `;
+    return card;
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('getLocation').addEventListener('click', getUserLocation);
+    document.getElementById('searchClinics').addEventListener('click', searchNearbyClinics);
+    document.getElementById('clearResults').addEventListener('click', function() {
+        document.getElementById('clinicsList').innerHTML = '';
+        markers.forEach(marker => marker.setMap(null));
+        markers = [];
+    });
+    
+    // Initialize map
+    initMap();
+});
+</script>
+
+<!-- Google Maps API -->
+<script async defer
+    src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initMap">
+</script>
+
+{% csrf_token %}
+{% endblock %} 

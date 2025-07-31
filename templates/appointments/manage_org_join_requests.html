@@ -1,0 +1,53 @@
+{% extends 'appointments/base.html' %}
+{% block title %}Manage Join Requests - {{ org.name }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Manage Doctor Join Requests for <strong>{{ org.name }}</strong></h2>
+    <div class="card mb-4">
+        <div class="card-header bg-light fw-bold">Pending Join Requests</div>
+        <div class="card-body">
+            {% if join_requests %}
+                <table class="table table-hover">
+                    <thead><tr><th>Doctor</th><th>Email</th><th>Requested At</th><th>Action</th></tr></thead>
+                    <tbody>
+                        {% for req in join_requests %}
+                        <tr>
+                            <td>{{ req.doctor.get_full_name }}</td>
+                            <td>{{ req.doctor.email }}</td>
+                            <td>{{ req.created_at|date:'Y-m-d H:i' }}</td>
+                            <td>
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="request_id" value="{{ req.id }}">
+                                    <button name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
+                                    <button name="action" value="deny" class="btn btn-danger btn-sm ms-2">Deny</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="text-muted">No pending join requests.</div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header bg-light fw-bold">Current Member Doctors</div>
+        <div class="card-body">
+            {% if member_doctors %}
+                <ul class="list-group">
+                    {% for doc in member_doctors %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{{ doc.user.get_full_name }} ({{ doc.specialization|default:'No specialization' }})</span>
+                            <span class="badge bg-primary">Doctor</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="text-muted">No doctors are currently members of this organization.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

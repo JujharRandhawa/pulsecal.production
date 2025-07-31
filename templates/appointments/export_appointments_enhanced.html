@@ -1,0 +1,212 @@
+{% extends 'appointments/base.html' %}
+
+{% block title %}Export Appointments - Clinic Appointment System{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-file-export me-2"></i>Export Appointments
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="row g-3">
+                            <!-- Organization Filter -->
+                            <div class="col-md-6">
+                                <label for="{{ form.organization.id_for_label }}" class="form-label">
+                                    <i class="fas fa-building me-1"></i>Organization
+                                </label>
+                                {{ form.organization }}
+                                {% if form.organization.help_text %}
+                                    <div class="form-text">{{ form.organization.help_text }}</div>
+                                {% endif %}
+                                {% if form.organization.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.organization.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Doctor Filter -->
+                            <div class="col-md-6">
+                                <label for="{{ form.doctor.id_for_label }}" class="form-label">
+                                    <i class="fas fa-user-md me-1"></i>Doctor
+                                </label>
+                                {{ form.doctor }}
+                                {% if form.doctor.help_text %}
+                                    <div class="form-text">{{ form.doctor.help_text }}</div>
+                                {% endif %}
+                                {% if form.doctor.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.doctor.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Status Filter -->
+                            <div class="col-md-6">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">
+                                    <i class="fas fa-info-circle me-1"></i>Status
+                                </label>
+                                {{ form.status }}
+                                {% if form.status.help_text %}
+                                    <div class="form-text">{{ form.status.help_text }}</div>
+                                {% endif %}
+                                {% if form.status.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.status.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Export Format -->
+                            <div class="col-md-6">
+                                <label for="{{ form.export_format.id_for_label }}" class="form-label">
+                                    <i class="fas fa-file me-1"></i>Export Format
+                                </label>
+                                {{ form.export_format }}
+                                {% if form.export_format.help_text %}
+                                    <div class="form-text">{{ form.export_format.help_text }}</div>
+                                {% endif %}
+                                {% if form.export_format.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.export_format.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Date Range -->
+                            <div class="col-md-6">
+                                <label for="{{ form.date_from.id_for_label }}" class="form-label">
+                                    <i class="fas fa-calendar me-1"></i>From Date
+                                </label>
+                                {{ form.date_from }}
+                                {% if form.date_from.help_text %}
+                                    <div class="form-text">{{ form.date_from.help_text }}</div>
+                                {% endif %}
+                                {% if form.date_from.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.date_from.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="{{ form.date_to.id_for_label }}" class="form-label">
+                                    <i class="fas fa-calendar me-1"></i>To Date
+                                </label>
+                                {{ form.date_to }}
+                                {% if form.date_to.help_text %}
+                                    <div class="form-text">{{ form.date_to.help_text }}</div>
+                                {% endif %}
+                                {% if form.date_to.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.date_to.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Export Options Info -->
+                        <div class="alert alert-info mt-3">
+                            <h6><i class="fas fa-info-circle me-2"></i>Export Options:</h6>
+                            <ul class="mb-0">
+                                <li><strong>CSV:</strong> Comma-separated values file, compatible with Excel and other spreadsheet applications</li>
+                                <li><strong>Excel (XLSX):</strong> Native Excel format with formatting and multiple sheets support</li>
+                                <li><strong>PDF Report:</strong> Professional report with summary statistics and formatted tables</li>
+                            </ul>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'appointments:dashboard' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                            </a>
+                            <div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-download me-1"></i>Export Appointments
+                                </button>
+                                <a href="{% url 'appointments:auto_export_appointments' %}" class="btn btn-success ms-2">
+                                    <i class="fas fa-sync me-1"></i>Auto Export
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Export Options -->
+            <div class="card mt-4 shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>Quick Export Options
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <a href="{% url 'appointments:export_appointments' %}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-file-csv me-1"></i>All Appointments (CSV)
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{% url 'appointments:export_users' %}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-users me-1"></i>All Users (CSV)
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{% url 'appointments:export_patients' %}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-user-injured me-1"></i>Patient Data (CSV)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    border-radius: 15px;
+}
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+}
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+.form-control:focus, .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+.alert {
+    border-radius: 10px;
+    border: none;
+}
+</style>
+{% endblock %} 

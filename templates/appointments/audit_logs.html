@@ -1,0 +1,67 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+{% block title %}Audit Logs - PulseCal{% endblock %}
+{% block content %}
+<style>
+    .admin-nav {
+        background: linear-gradient(90deg, #2563eb 60%, #3b82f6 100%);
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+        padding: 1rem 2rem;
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+        box-shadow: 0 2px 12px rgba(37,99,235,0.10);
+    }
+    .admin-nav a {
+        color: #fff;
+        font-weight: 500;
+        text-decoration: none;
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .admin-nav a.active, .admin-nav a:hover {
+        color: #fbbf24;
+        text-decoration: underline;
+    }
+</style>
+<div class="container py-5">
+    <div class="admin-nav mb-4">
+        <a href="{% url 'appointments:admin_analytics' %}"><i class="fas fa-chart-bar"></i> Analytics</a>
+        <a href="{% url 'appointments:export_appointments' %}"><i class="fas fa-file-export"></i> Export Appointments</a>
+        <a href="{% url 'appointments:export_users' %}"><i class="fas fa-users"></i> Export Users</a>
+        <a href="{% url 'appointments:import_patients' %}"><i class="fas fa-file-import"></i> Import Patients</a>
+        <a href="{% url 'appointments:manage_roles' %}"><i class="fas fa-user-shield"></i> Manage Roles</a>
+        <a href="{% url 'appointments:audit_logs' %}" class="active"><i class="fas fa-clipboard-list"></i> Audit Logs</a>
+    </div>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="mb-4 fw-bold text-center"><i class="fas fa-clipboard-list me-2"></i>Audit Logs</h2>
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Timestamp</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.user|default:'(system)' }}</td>
+                        <td>{{ log.action }}</td>
+                        <td>{{ log.timestamp|date:'Y-m-d H:i:s' }}</td>
+                        <td>{{ log.details }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center text-muted">No logs found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

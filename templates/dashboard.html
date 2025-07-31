@@ -1,0 +1,230 @@
+{% extends 'appointments/base.html' %}
+
+{% block title %}Dashboard - Clinic Appointment System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+        </h2>
+        <p class="text-muted mb-0">Welcome back, {{ current_user.name }}!</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if current_user.role == 'patient' %}
+            <a href="{{ url_for('schedule') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Schedule Appointment
+            </a>
+        {% endif %}
+        <a href="{{ url_for('calendar') }}" class="btn btn-outline-primary">
+            <i class="fas fa-calendar me-2"></i>View Calendar
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="mb-2">
+                    <i class="fas fa-calendar-check fa-2x text-primary"></i>
+                </div>
+                <h5 class="card-title">{{ appointments|length }}</h5>
+                <p class="card-text text-muted">Total Appointments</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="mb-2">
+                    <i class="fas fa-clock fa-2x text-warning"></i>
+                </div>
+                <h5 class="card-title">{{ appointments|selectattr('status', 'equalto', 'pending')|list|length }}</h5>
+                <p class="card-text text-muted">Pending</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="mb-2">
+                    <i class="fas fa-check-circle fa-2x text-success"></i>
+                </div>
+                <h5 class="card-title">{{ appointments|selectattr('status', 'equalto', 'accepted')|list|length }}</h5>
+                <p class="card-text text-muted">Accepted</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="mb-2">
+                    <i class="fas fa-times-circle fa-2x text-danger"></i>
+                </div>
+                <h5 class="card-title">{{ appointments|selectattr('status', 'equalto', 'declined')|list|length }}</h5>
+                <p class="card-text text-muted">Declined</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Appointments List -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>
+            {% if current_user.role == 'doctor' %}
+                My Patient Appointments
+            {% else %}
+                My Appointments
+            {% endif %}
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if appointments %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            {% if current_user.role == 'doctor' %}
+                                <th>Patient</th>
+                            {% else %}
+                                <th>Doctor</th>
+                            {% endif %}
+                            <th>Status</th>
+                            {% if current_user.role == 'doctor' %}
+                                <th>Patient Status</th>
+                            {% endif %}
+                            <th>Notes</th>
+                            {% if current_user.role == 'doctor' %}
+                                <th>Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appointment in appointments %}
+                        <tr>
+                            <td>
+                                <strong>{{ appointment.appointment_date|date:"F d, Y" }}</strong><br>
+<small class="text-muted">{{ appointment.appointment_date|date:"g:i A" }}</small>
+                            </td>
+                            <td>
+                                {% if current_user.role == 'doctor' %}
+                                    <strong>{{ appointment.patient.name }}</strong><br>
+                                    <small class="text-muted">{{ appointment.patient.email }}</small>
+                                {% else %}
+                                    <strong>{{ appointment.doctor.name }}</strong><br>
+                                    <small class="text-muted">{{ appointment.doctor.specialization }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ appointment.status }}">
+                                    {{ appointment.status.title() }}
+                                </span>
+                            </td>
+                            {% if current_user.role == 'doctor' %}
+                                <td>
+                                    <span class="status-badge patient-{{ appointment.patient_status|cut:"_" }}">
+                                        {{ appointment.patient_status|cut:"_"|title }}
+                                    </span>
+                                </td>
+                            {% endif %}
+                            <td>
+                                {% if appointment.notes %}
+                                    <small>{{ appointment.notes[:50] }}{% if appointment.notes|length > 50 %}...{% endif %}</small>
+                                {% else %}
+                                    <small class="text-muted">No notes</small>
+                                {% endif %}
+                            </td>
+                            {% if current_user.role == 'doctor' %}
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        {% if appointment.status == 'pending' %}
+                                            <button class="btn btn-success" onclick="updateStatus({{ appointment.id }}, 'accepted')">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="btn btn-danger" onclick="updateStatus({{ appointment.id }}, 'declined')">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        {% endif %}
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                                <i class="fas fa-user"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="#" onclick="updatePatientStatus({{ appointment.id }}, 'waiting')">Waiting</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="updatePatientStatus({{ appointment.id }}, 'in_consultation')">In Consultation</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="updatePatientStatus({{ appointment.id }}, 'done')">Done</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No appointments found</h5>
+                {% if current_user.role == 'patient' %}
+                    <p class="text-muted">Schedule your first appointment to get started!</p>
+                    <a href="{{ url_for('schedule') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Schedule Appointment
+                    </a>
+                {% else %}
+                    <p class="text-muted">No patient appointments scheduled yet.</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateStatus(appointmentId, status) {
+    fetch(`/update_appointment_status/${appointmentId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `status=${status}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error updating status');
+        }
+    });
+}
+
+function updatePatientStatus(appointmentId, patientStatus) {
+    fetch(`/update_appointment_status/${appointmentId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `patient_status=${patientStatus}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error updating patient status');
+        }
+    });
+}
+</script>
+{% endblock %} 

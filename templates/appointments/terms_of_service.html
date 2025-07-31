@@ -1,0 +1,231 @@
+{% extends 'appointments/base.html' %}
+
+{% block title %}Terms of Service - PulseCal{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-file-contract me-2"></i>Terms of Service
+                    </h1>
+                    <p class="mb-0 mt-2">Last updated: {{ "now"|date:"F d, Y" }}</p>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>PulseCal</strong> ("we," "our," or "us") provides appointment scheduling services. By using our platform, you agree to these Terms of Service.
+                    </div>
+
+                    <h2 class="h4 text-primary mt-4">1. Acceptance of Terms</h2>
+                    <p>By accessing or using PulseCal, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our service.</p>
+
+                    <h2 class="h4 text-primary mt-4">2. Service Description</h2>
+                    <p>PulseCal provides:</p>
+                    <ul>
+                        <li><strong>Appointment Scheduling:</strong> Book, reschedule, and cancel medical appointments</li>
+                        <li><strong>Provider Management:</strong> Find and connect with healthcare providers</li>
+                        <li><strong>Communication Tools:</strong> Secure messaging and notifications</li>
+                        <li><strong>Location Services:</strong> Find nearby clinics and get directions</li>
+                        <li><strong>Health Records:</strong> Manage and share medical information</li>
+                    </ul>
+
+                    <h2 class="h4 text-primary mt-4">3. User Accounts</h2>
+                    <h3 class="h5">3.1 Account Creation</h3>
+                    <p>To use our service, you must:</p>
+                    <ul>
+                        <li>Be at least 18 years old or have parental consent</li>
+                        <li>Provide accurate and complete information</li>
+                        <li>Maintain the security of your account credentials</li>
+                        <li>Notify us immediately of any unauthorized access</li>
+                    </ul>
+
+                    <h3 class="h5">3.2 Account Responsibilities</h3>
+                    <p>You are responsible for:</p>
+                    <ul>
+                        <li>All activities under your account</li>
+                        <li>Maintaining accurate contact information</li>
+                        <li>Complying with all applicable laws</li>
+                        <li>Not sharing your account with others</li>
+                    </ul>
+
+                    <h2 class="h4 text-primary mt-4">4. Acceptable Use</h2>
+                    <h3 class="h5">4.1 Permitted Uses</h3>
+                    <p>You may use our service for:</p>
+                    <ul>
+                        <li>Scheduling legitimate medical appointments</li>
+                        <li>Communicating with healthcare providers</li>
+                        <li>Managing your health information</li>
+                        <li>Accessing healthcare resources</li>
+                    </ul>
+
+                    <h3 class="h5">4.2 Prohibited Uses</h3>
+                    <p>You may not:</p>
+                    <ul>
+                        <li>Use the service for illegal purposes</li>
+                        <li>Impersonate others or provide false information</li>
+                        <li>Attempt to gain unauthorized access to our systems</li>
+                        <li>Interfere with service operation or security</li>
+                        <li>Share inappropriate or harmful content</li>
+                        <li>Use automated tools to access our service</li>
+                        <li>Reverse engineer or copy our technology</li>
+                    </ul>
+
+                    <h2 class="h4 text-primary mt-4">5. Healthcare Disclaimer</h2>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Important:</strong> PulseCal is not a healthcare provider and does not provide medical advice, diagnosis, or treatment.
+                    </div>
+                    <p>Our service:</p>
+                    <ul>
+                        <li>Facilitates communication between patients and providers</li>
+                        <li>Does not replace professional medical care</li>
+                        <li>Should not be used for emergency situations</li>
+                        <li>Does not guarantee appointment availability</li>
+                        <li>Is not responsible for medical outcomes</li>
+                    </ul>
+
+                    <h2 class="h4 text-primary mt-4">6. Privacy and Data Protection</h2>
+                    <p>Your privacy is important to us. Our collection and use of your information is governed by our <a href="{% url 'appointments:privacy_policy' %}">Privacy Policy</a>, which is incorporated into these Terms of Service.</p>
+
+                    <h2 class="h4 text-primary mt-4">7. Intellectual Property</h2>
+                    <h3 class="h5">7.1 Our Rights</h3>
+                    <p>PulseCal owns or licenses:</p>
+                    <ul>
+                        <li>All software, technology, and content on our platform</li>
+                        <li>Trademarks, logos, and brand elements</li>
+                        <li>Proprietary algorithms and business methods</li>
+                        <li>User interface designs and layouts</li>
+                    </ul>
+
+                    <h3 class="h5">7.2 Your Rights</h3>
+                    <p>You retain ownership of:</p>
+                    <ul>
+                        <li>Your personal information and health data</li>
+                        <li>Content you create and share</li>
+                        <li>Feedback and suggestions you provide</li>
+                    </ul>
+
+                    <h2 class="h4 text-primary mt-4">8. Payment Terms</h2>
+                    <h3 class="h5">8.1 Service Fees</h3>
+                    <p>Some features may require payment:</p>
+                    <ul>
+                        <li>Premium subscription services</li>
+                        <li>Advanced appointment features</li>
+                        <li>Priority support services</li>
+                        <li>Specialized integrations</li>
+                    </ul>
+
+                    <h3 class="h5">8.2 Payment Processing</h3>
+                    <p>Payments are processed securely through third-party providers. You agree to:</p>
+                    <ul>
+                        <li>Provide accurate payment information</li>
+                        <li>Pay all applicable fees on time</li>
+                        <li>Authorize recurring payments if applicable</li>
+                        <li>Notify us of any billing disputes</li>
+                    </ul>
+
+                    <h2 class="h4 text-primary mt-4">9. Service Availability</h2>
+                    <p>We strive to provide reliable service but cannot guarantee:</p>
+                    <ul>
+                        <li>Uninterrupted access to our platform</li>
+                        <li>Availability of all features at all times</li>
+                        <li>Compatibility with all devices or browsers</li>
+                        <li>Real-time accuracy of all information</li>
+                    </ul>
+                    <p>We may perform maintenance or updates that temporarily affect service availability.</p>
+
+                    <h2 class="h4 text-primary mt-4">10. Third-Party Services</h2>
+                    <p>Our service integrates with third-party providers:</p>
+                    <ul>
+                        <li><strong>Healthcare Providers:</strong> Independent medical practices</li>
+                        <li><strong>Payment Processors:</strong> Secure payment services</li>
+                        <li><strong>Communication Services:</strong> SMS and email providers</li>
+                        <li><strong>Location Services:</strong> Mapping and navigation</li>
+                    </ul>
+                    <p>We are not responsible for the services, content, or practices of third-party providers.</p>
+
+                    <h2 class="h4 text-primary mt-4">11. Limitation of Liability</h2>
+                    <p>To the maximum extent permitted by law:</p>
+                    <ul>
+                        <li>We are not liable for indirect, incidental, or consequential damages</li>
+                        <li>Our total liability is limited to the amount you paid for our service</li>
+                        <li>We are not responsible for medical outcomes or provider actions</li>
+                        <li>We do not guarantee appointment availability or provider availability</li>
+                    </ul>
+
+                    <h2 class="h4 text-primary mt-4">12. Indemnification</h2>
+                    <p>You agree to indemnify and hold harmless PulseCal from any claims, damages, or expenses arising from:</p>
+                    <ul>
+                        <li>Your use of our service</li>
+                        <li>Your violation of these terms</li>
+                        <li>Your interaction with healthcare providers</li>
+                        <li>Your sharing of information with third parties</li>
+                    </ul>
+
+                    <h2 class="h4 text-primary mt-4">13. Termination</h2>
+                    <h3 class="h5">13.1 Termination by You</h3>
+                    <p>You may terminate your account at any time by:</p>
+                    <ul>
+                        <li>Contacting our support team</li>
+                        <li>Using the account deletion feature</li>
+                        <li>Providing written notice</li>
+                    </ul>
+
+                    <h3 class="h5">13.2 Termination by Us</h3>
+                    <p>We may terminate or suspend your account if:</p>
+                    <ul>
+                        <li>You violate these terms</li>
+                        <li>You engage in fraudulent activity</li>
+                        <li>You pose a security risk</li>
+                        <li>Required by law or regulation</li>
+                    </ul>
+
+                    <h2 class="h4 text-primary mt-4">14. Dispute Resolution</h2>
+                    <h3 class="h5">14.1 Informal Resolution</h3>
+                    <p>Before pursuing formal action, we encourage you to contact us to resolve disputes informally.</p>
+
+                    <h3 class="h5">14.2 Arbitration</h3>
+                    <p>Any disputes not resolved informally will be resolved through binding arbitration in accordance with the rules of the American Arbitration Association.</p>
+
+                    <h2 class="h4 text-primary mt-4">15. Governing Law</h2>
+                    <p>These Terms of Service are governed by the laws of the state where PulseCal is incorporated, without regard to conflict of law principles.</p>
+
+                    <h2 class="h4 text-primary mt-4">16. Changes to Terms</h2>
+                    <p>We may update these terms from time to time. We will notify you of material changes by:</p>
+                    <ul>
+                        <li>Posting updated terms on our website</li>
+                        <li>Sending email notifications</li>
+                        <li>Displaying notices in our application</li>
+                    </ul>
+                    <p>Continued use of our service after changes constitutes acceptance of the new terms.</p>
+
+                    <h2 class="h4 text-primary mt-4">17. Severability</h2>
+                    <p>If any provision of these terms is found to be unenforceable, the remaining provisions will continue in full force and effect.</p>
+
+                    <h2 class="h4 text-primary mt-4">18. Entire Agreement</h2>
+                    <p>These Terms of Service, together with our Privacy Policy, constitute the entire agreement between you and PulseCal regarding our service.</p>
+
+                    <h2 class="h4 text-primary mt-4">19. Contact Information</h2>
+                    <p>If you have questions about these Terms of Service, please contact us using the contact form on our website.</p>
+
+                    <div class="alert alert-success mt-4">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Thank you for choosing PulseCal!</strong> We're committed to providing you with the best possible appointment scheduling experience while protecting your privacy and ensuring your safety.
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="{% url 'appointments:privacy_policy' %}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-shield-alt me-2"></i>Privacy Policy
+                    </a>
+                    <a href="{% url 'appointments:home' %}" class="btn btn-primary">
+                        <i class="fas fa-home me-2"></i>Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,11 @@
+{% extends 'appointments/base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Export Patient Data by Organization</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-success">Export CSV</button>
+    </form>
+</div>
+{% endblock %} 

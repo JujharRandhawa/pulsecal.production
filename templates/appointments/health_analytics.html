@@ -1,0 +1,278 @@
+{% extends 'appointments/base.html' %}
+{% load static %}
+
+{% block title %}Health Analytics - PulseCal{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analytics-card {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+    .analytics-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-card.success {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    
+    .stat-card.warning {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .stat-card.info {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    
+    .activity-item {
+        border-left: 3px solid #007bff;
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        background: #f8f9fa;
+        border-radius: 0 8px 8px 0;
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4"><i class="fas fa-chart-line"></i> Health Analytics & Insights</h2>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card success">
+                <div class="stat-number">{{ total_appointments }}</div>
+                <div class="stat-label">Total Appointments</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card info">
+                <div class="stat-number">{{ completed_appointments }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card warning">
+                <div class="stat-number">{{ active_prescriptions }}</div>
+                <div class="stat-label">Active Prescriptions</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">${{ total_spent|floatformat:2 }}</div>
+                <div class="stat-label">Total Spent</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="chart-container">
+                <h5><i class="fas fa-chart-bar"></i> Appointment Trends</h5>
+                <canvas id="appointmentChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="chart-container">
+                <h5><i class="fas fa-chart-pie"></i> Health Status</h5>
+                <canvas id="healthChart" width="200" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card analytics-card">
+                <div class="card-header">
+                    <h5><i class="fas fa-calendar-check"></i> Recent Appointments</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_appointments %}
+                        {% for appointment in recent_appointments %}
+                        <div class="activity-item">
+                            <div class="d-flex justify-content-between">
+                                <strong>Dr. {{ appointment.doctor.get_full_name }}</strong>
+                                <span class="badge bg-{{ appointment.status }}">{{ appointment.get_status_display }}</span>
+                            </div>
+                            <small class="text-muted">{{ appointment.appointment_date|date:"M d, Y" }}</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No recent appointments</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card analytics-card">
+                <div class="card-header">
+                    <h5><i class="fas fa-pills"></i> Recent Prescriptions</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_prescriptions %}
+                        {% for prescription in recent_prescriptions %}
+                        <div class="activity-item">
+                            <div class="d-flex justify-content-between">
+                                <strong>{{ prescription.medication_name }}</strong>
+                                <span class="badge bg-{{ prescription.status }}">{{ prescription.get_status_display }}</span>
+                            </div>
+                            <small class="text-muted">{{ prescription.prescribed_date|date:"M d, Y" }}</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No recent prescriptions</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card analytics-card">
+                <div class="card-header">
+                    <h5><i class="fas fa-notes-medical"></i> Recent Medical Records</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_records %}
+                        {% for record in recent_records %}
+                        <div class="activity-item">
+                            <div class="d-flex justify-content-between">
+                                <strong>{{ record.title }}</strong>
+                                <span class="badge bg-{{ record.severity }}">{{ record.get_severity_display }}</span>
+                            </div>
+                            <small class="text-muted">{{ record.date_recorded|date:"M d, Y" }}</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No recent medical records</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Health Insights -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card analytics-card">
+                <div class="card-header">
+                    <h5><i class="fas fa-lightbulb"></i> Health Insights</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Appointment Completion Rate</h6>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {% if total_appointments > 0 %}{{ completed_appointments|div:total_appointments|mul:100|floatformat:0 }}{% else %}0{% endif %}%">
+                                    {% if total_appointments > 0 %}{{ completed_appointments|div:total_appointments|mul:100|floatformat:0 }}{% else %}0{% endif %}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Health Management</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success"></i> {{ active_prescriptions }} active prescriptions</li>
+                                <li><i class="fas fa-check text-success"></i> Regular appointment tracking</li>
+                                <li><i class="fas fa-check text-success"></i> Medical records maintained</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Appointment Trends Chart
+    const appointmentCtx = document.getElementById('appointmentChart').getContext('2d');
+    new Chart(appointmentCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'Appointments',
+                data: [12, 19, 3, 5, 2, 3],
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Health Status Chart
+    const healthCtx = document.getElementById('healthChart').getContext('2d');
+    new Chart(healthCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'Active', 'Pending'],
+            datasets: [{
+                data: [{{ completed_appointments }}, {{ active_prescriptions }}, {{ total_appointments|add:"-"|add:completed_appointments }}],
+                backgroundColor: [
+                    'rgb(54, 162, 235)',
+                    'rgb(255, 205, 86)',
+                    'rgb(255, 99, 132)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

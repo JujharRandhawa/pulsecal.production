@@ -1,0 +1,219 @@
+{% extends 'appointments/base.html' %}
+
+{% block title %}Calendar - Clinic Appointment System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">
+            <i class="fas fa-calendar me-2"></i>Appointment Calendar
+        </h2>
+        <p class="text-muted mb-0">View your appointments in calendar format</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if user.is_authenticated and user.profile.role == 'patient' %}
+            <a href="{% url 'appointments:schedule' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Schedule Appointment
+            </a>
+        {% endif %}
+        {% if user.is_authenticated %}
+            {% if user.profile.role == 'doctor' %}
+                <a href="{% url 'appointments:dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            {% elif user.profile.role == 'patient' %}
+                <a href="{% url 'appointments:patient_dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            {% elif user.profile.role == 'receptionist' %}
+                <a href="{% url 'appointments:reception_dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            {% endif %}
+            <a href="{% url 'appointments:google_calendar_init' %}" class="btn btn-outline-primary">
+                <i class="fab fa-google me-1"></i>Sync with Google Calendar
+            </a>
+        {% else %}
+            <a href="{% url 'appointments:home' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Home
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Calendar Legend -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h6 class="mb-3"><i class="fas fa-info-circle me-2"></i>Calendar Legend</h6>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="bg-warning rounded me-2" style="width: 20px; height: 20px;"></div>
+                    <small>Pending</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="bg-success rounded me-2" style="width: 20px; height: 20px;"></div>
+                    <small>Accepted</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="bg-danger rounded me-2" style="width: 20px; height: 20px;"></div>
+                    <small>Declined</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="bg-info rounded me-2" style="width: 20px; height: 20px;"></div>
+                    <small>Completed</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Calendar Container -->
+<div class="card">
+    <div class="card-body">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<!-- Appointment Details Modal -->
+<div class="modal fade" id="appointmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Appointment Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="appointmentDetails">
+                    <!-- Details will be populated by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- FullCalendar CSS & JS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
+<script>
+    // Safely define calendar data for JS
+    var calendarData = {{ calendar_data|default:'[]'|safe }};
+    if (!Array.isArray(calendarData)) {
+        calendarData = [];
+    }
+    // Add a sample event if there are no events (for demo)
+    if (calendarData.length === 0) {
+        calendarData.push({
+            id: 0,
+            title: 'Sample Appointment',
+            start: new Date().toISOString().slice(0, 10) + 'T10:00:00',
+            end: new Date().toISOString().slice(0, 10) + 'T11:00:00',
+            status: 'pending',
+            patient_status: 'waiting'
+        });
+        window.__calendar_empty = true;
+    } else {
+        window.__calendar_empty = false;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+            },
+            events: calendarData,
+            eventClick: function(info) {
+                showAppointmentDetails(info.event);
+            },
+            eventDidMount: function(info) {
+                const status = info.event.extendedProps.status;
+                // Use PulseCal palette
+                if (status === 'pending') {
+                    info.el.style.backgroundColor = '#f97316'; // Modern Orange (CTA)
+                    info.el.style.borderColor = '#f97316';
+                } else if (status === 'accepted') {
+                    info.el.style.backgroundColor = '#2563eb'; // Indigo Blue (Primary)
+                    info.el.style.borderColor = '#2563eb';
+                } else if (status === 'declined') {
+                    info.el.style.backgroundColor = '#6b7280'; // Cool Gray (Muted)
+                    info.el.style.borderColor = '#6b7280';
+                } else if (status === 'completed') {
+                    info.el.style.backgroundColor = '#22c55e'; // Fresh Green (Accent)
+                    info.el.style.borderColor = '#22c55e';
+                }
+            },
+            height: 'auto',
+            selectable: true,
+            selectMirror: true,
+            dayMaxEvents: true,
+            weekends: true,
+            businessHours: {
+                daysOfWeek: [1, 2, 3, 4, 5, 6],
+                startTime: '09:00',
+                endTime: '17:00',
+            },
+            slotMinTime: '08:00:00',
+            slotMaxTime: '18:00:00',
+            allDaySlot: false,
+            slotDuration: '00:30:00',
+            slotLabelInterval: '01:00:00',
+            nowIndicator: true,
+            scrollTime: '09:00:00',
+        });
+        calendar.render();
+        // Show friendly message if no real events
+        if (window.__calendar_empty) {
+            setTimeout(function() {
+                const calendarBody = document.getElementById('calendar');
+                if (calendarBody) {
+                    const msg = document.createElement('div');
+                    msg.className = 'alert alert-info mt-4';
+                    msg.innerHTML = '<i class="fas fa-info-circle me-2"></i>No appointments yet. Your scheduled appointments will appear here.';
+                    calendarBody.appendChild(msg);
+                }
+            }, 500);
+        }
+    });
+
+    function showAppointmentDetails(event) {
+        const details = document.getElementById('appointmentDetails');
+        const startDate = new Date(event.start).toLocaleString();
+        details.innerHTML = `
+            <div class="row">
+                <div class="col-12">
+                    <h6>${event.title}</h6>
+                    <p><strong>Date:</strong> ${startDate}</p>
+                    <p><strong>Duration:</strong> 1 hour</p>
+                    <p><strong>Status:</strong> <span class="badge bg-${getStatusColor(event.extendedProps.status)}">${event.extendedProps.status}</span></p>
+                </div>
+            </div>
+        `;
+        const modal = new bootstrap.Modal(document.getElementById('appointmentModal'));
+        modal.show();
+    }
+    function getStatusColor(status) {
+        switch(status) {
+            case 'pending': return 'warning';
+            case 'accepted': return 'primary';
+            case 'declined': return 'muted';
+            case 'completed': return 'success';
+            default: return 'secondary';
+        }
+    }
+</script>
+{% endblock %} 
