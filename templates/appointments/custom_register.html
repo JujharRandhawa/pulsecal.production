@@ -433,8 +433,8 @@
                 </div>
             {% endif %}
             
-            <form method="post" novalidate>
-                {% csrf_token %}
+                    <form method="post" novalidate>
+                        {% csrf_token %}
                 
                 <div class="role-selection">
                     <div class="role-title">
@@ -445,21 +445,21 @@
                         Select the type of account that best describes your role in healthcare
                     </div>
                     <div class="role-options">
-                        {% for radio in form.registration_type %}
+                            {% for radio in form.registration_type %}
                             <div class="role-option">
-                                {{ radio.tag }}
+                                    {{ radio.tag }}
                                 <label class="role-label" for="{{ radio.id_for_label }}">
                                     {{ radio.choice_label }}
                                 </label>
-                            </div>
-                        {% endfor %}
-                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
                 </div>
                 
-                <div class="row">
+                        <div class="row">
                     <div class="col-md-6">
                         <div class="form-floating">
-                            {{ form.first_name }}
+                                {{ form.first_name }}
                             <label for="id_first_name">
                                 <i class="fas fa-user me-2"></i>First Name
                             </label>
@@ -473,7 +473,7 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-floating">
-                            {{ form.last_name }}
+                                {{ form.last_name }}
                             <label for="id_last_name">
                                 <i class="fas fa-user me-2"></i>Last Name
                             </label>
@@ -484,11 +484,11 @@
                                 {{ form.last_name.errors.0 }}
                             </div>
                         {% endif %}
-                    </div>
-                </div>
+                            </div>
+                        </div>
                 
                 <div class="form-floating">
-                    {{ form.username }}
+                            {{ form.username }}
                     <label for="id_username">
                         <i class="fas fa-at me-2"></i>Username
                     </label>
@@ -497,11 +497,11 @@
                     <div class="error-text">
                         <i class="fas fa-exclamation-circle"></i>
                         {{ form.username.errors.0 }}
-                    </div>
+                        </div>
                 {% endif %}
                 
                 <div class="form-floating">
-                    {{ form.email }}
+                            {{ form.email }}
                     <label for="id_email">
                         <i class="fas fa-envelope me-2"></i>Email Address
                     </label>
@@ -530,7 +530,7 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-floating">
-                            {{ form.confirm_password }}
+                                {{ form.confirm_password }}
                             <label for="id_password_confirm">
                                 <i class="fas fa-lock me-2"></i>Confirm Password
                             </label>
@@ -571,20 +571,20 @@
                         <label for="id_org_name">
                             <i class="fas fa-signature me-2"></i>Organization Name
                         </label>
-                    </div>
+                            </div>
                     {% if form.org_name.errors %}
                         <div class="error-text">
                             <i class="fas fa-exclamation-circle"></i>
                             {{ form.org_name.errors.0 }}
-                        </div>
+                            </div>
                     {% endif %}
                     
                     <div class="form-floating">
-                        {{ form.org_address }}
+                                {{ form.org_address }}
                         <label for="id_org_address">
                             <i class="fas fa-map-marker-alt me-2"></i>Organization Address
                         </label>
-                    </div>
+                            </div>
                     {% if form.org_address.errors %}
                         <div class="error-text">
                             <i class="fas fa-exclamation-circle"></i>
@@ -657,13 +657,13 @@
         const orgTypeGroup = document.getElementById('org-type-group');
         const orgTypeSelect = document.getElementById('id_org_type');
         
-        function toggleOrgFields() {
+    function toggleOrgFields() {
             const selectedRole = document.querySelector('input[name="registration_type"]:checked');
             if (selectedRole && (selectedRole.value === 'clinic' || selectedRole.value === 'hospital' || selectedRole.value === 'doctor_solo' || selectedRole.value === 'solo_doctor')) {
                 orgFields.classList.remove('hidden');
                 if (selectedRole.value === 'doctor_solo' || selectedRole.value === 'solo_doctor') {
-                    if (orgTypeGroup) orgTypeGroup.style.display = 'none';
-                    if (orgTypeSelect) orgTypeSelect.value = 'solo_doctor';
+                if (orgTypeGroup) orgTypeGroup.style.display = 'none';
+                if (orgTypeSelect) orgTypeSelect.value = 'solo_doctor';
                 } else {
                     if (orgTypeGroup) orgTypeGroup.style.display = 'block';
                 }
