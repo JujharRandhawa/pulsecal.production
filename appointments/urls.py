@@ -37,6 +37,9 @@ urlpatterns = [
     # Legal pages
     path('privacy-policy/', views.privacy_policy, name='privacy_policy'),
     path('terms-of-service/', views.terms_of_service, name='terms_of_service'),
+    path('copyright/', views.copyright_page, name='copyright'),
+    path('refund-policy/', views.refund_policy, name='refund_policy'),
+    path('terms-conditions/', views.terms_conditions, name='terms_conditions'),
     
     # WebSocket and real-time features
     path('notifications/', views.notifications_view, name='notifications'),

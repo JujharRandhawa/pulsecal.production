@@ -165,6 +165,22 @@
         position: relative;
     }
     
+    .form-floating select.form-control {
+        padding-right: 40px;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 12px center;
+        background-repeat: no-repeat;
+        background-size: 16px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
+    
+    .form-floating textarea.form-control {
+        min-height: 80px;
+        resize: vertical;
+    }
+    
     .form-floating .form-control:focus {
         border-color: #3b82f6;
         background: white;
@@ -459,7 +475,7 @@
                         <div class="row">
                     <div class="col-md-6">
                         <div class="form-floating">
-                                {{ form.first_name }}
+                            <input type="text" name="first_name" id="id_first_name" class="form-control" placeholder=" " required>
                             <label for="id_first_name">
                                 <i class="fas fa-user me-2"></i>First Name
                             </label>
@@ -473,7 +489,7 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-floating">
-                                {{ form.last_name }}
+                            <input type="text" name="last_name" id="id_last_name" class="form-control" placeholder=" " required>
                             <label for="id_last_name">
                                 <i class="fas fa-user me-2"></i>Last Name
                             </label>
@@ -484,11 +500,11 @@
                                 {{ form.last_name.errors.0 }}
                             </div>
                         {% endif %}
-                            </div>
-                        </div>
+                    </div>
+                </div>
                 
                 <div class="form-floating">
-                            {{ form.username }}
+                    <input type="text" name="username" id="id_username" class="form-control" placeholder=" " required>
                     <label for="id_username">
                         <i class="fas fa-at me-2"></i>Username
                     </label>
@@ -497,11 +513,11 @@
                     <div class="error-text">
                         <i class="fas fa-exclamation-circle"></i>
                         {{ form.username.errors.0 }}
-                        </div>
+                    </div>
                 {% endif %}
                 
                 <div class="form-floating">
-                            {{ form.email }}
+                    <input type="email" name="email" id="id_email" class="form-control" placeholder=" " required>
                     <label for="id_email">
                         <i class="fas fa-envelope me-2"></i>Email Address
                     </label>
@@ -516,7 +532,7 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-floating">
-                            {{ form.password }}
+                            <input type="password" name="password" id="id_password" class="form-control" placeholder=" " required>
                             <label for="id_password">
                                 <i class="fas fa-lock me-2"></i>Password
                             </label>
@@ -530,7 +546,7 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-floating">
-                                {{ form.confirm_password }}
+                            <input type="password" name="confirm_password" id="id_password_confirm" class="form-control" placeholder=" " required>
                             <label for="id_password_confirm">
                                 <i class="fas fa-lock me-2"></i>Confirm Password
                             </label>
@@ -554,7 +570,12 @@
                     </div>
                     
                     <div id="org-type-group" class="form-floating">
-                        {{ form.org_type }}
+                        <select name="org_type" id="id_org_type" class="form-control" placeholder=" ">
+                            <option value="">Select Organization Type</option>
+                            <option value="clinic">Clinic</option>
+                            <option value="hospital">Hospital</option>
+                            <option value="solo_doctor">Solo Doctor</option>
+                        </select>
                         <label for="id_org_type">
                             <i class="fas fa-hospital me-2"></i>Organization Type
                         </label>
@@ -567,24 +588,24 @@
                     {% endif %}
                     
                     <div class="form-floating">
-                        {{ form.org_name }}
+                        <input type="text" name="org_name" id="id_org_name" class="form-control" placeholder=" ">
                         <label for="id_org_name">
                             <i class="fas fa-signature me-2"></i>Organization Name
                         </label>
-                            </div>
+                    </div>
                     {% if form.org_name.errors %}
                         <div class="error-text">
                             <i class="fas fa-exclamation-circle"></i>
                             {{ form.org_name.errors.0 }}
-                            </div>
+                        </div>
                     {% endif %}
                     
                     <div class="form-floating">
-                                {{ form.org_address }}
+                        <textarea name="org_address" id="id_org_address" class="form-control" placeholder=" " rows="3"></textarea>
                         <label for="id_org_address">
                             <i class="fas fa-map-marker-alt me-2"></i>Organization Address
                         </label>
-                            </div>
+                    </div>
                     {% if form.org_address.errors %}
                         <div class="error-text">
                             <i class="fas fa-exclamation-circle"></i>

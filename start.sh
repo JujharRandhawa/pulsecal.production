@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 # PulseCal Universal Launcher - Works on macOS, Linux, and Windows
 # This is the main entry point for all operating systems
 

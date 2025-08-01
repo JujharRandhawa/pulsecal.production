@@ -2628,8 +2628,20 @@ def terms_of_service(request):
     """Terms of Service page"""
     return render(request, 'appointments/terms_of_service.html')
 
+def copyright_page(request):
+    """Copyright page"""
+    return render(request, 'appointments/copyright.html')
+
+def refund_policy(request):
+    """Refund Policy page"""
+    return render(request, 'appointments/refund_policy.html')
+
+def terms_conditions(request):
+    """Terms and Conditions page"""
+    return render(request, 'appointments/terms_conditions.html')
+
 def custom_register(request):
-    from django.contrib.auth import login
+    from django.contrib.auth import login, authenticate
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
         if form.is_valid():
@@ -2669,7 +2681,10 @@ def custom_register(request):
                 role=role,
                 organization=org if org else None
             )
-            login(request, user)
+            # Authenticate and login with backend specification
+            authenticated_user = authenticate(request, username=username, password=password)
+            if authenticated_user:
+                login(request, authenticated_user, backend='django.contrib.auth.backends.ModelBackend')
             return redirect('appointments:dashboard')
     else:
         form = RegistrationForm()
